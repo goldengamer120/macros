@@ -1729,7 +1729,7 @@ function showPage(page){
 
 // ── MODES ────────────────────────────────────────────────────────
 function setMode(mode){
-  ['search','voice','manual'].forEach(m=>{
+  ['search','photo','voice','manual'].forEach(m=>{
     document.getElementById('mode-'+m).style.display=m===mode?'block':'none';
     document.getElementById('tab-'+m).classList.toggle('active',m===mode);
   });
@@ -2598,6 +2598,130 @@ function loadDarkMode(){
   document.documentElement.classList.remove('dark-mode-early');
   const toggle=document.getElementById('dark-mode-toggle');
   if(toggle)toggle.checked=on;
+}
+
+// ── PHOTO / GEMINI ───────────────────────────────────────────────
+const GEMINI_KEY='AQ.Ab8RN6J6hM9lZC3hfW5pVA1V_IcYPWdN6ZdSaVywKsRL5MRrhQ';
+const GEMINI_URL='https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+
+let photoBase64=null, photoMime=null;
+
+function onPhotoSelected(input){
+  const file=input.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    photoBase64=e.target.result.split(',')[1];
+    photoMime=file.type;
+    document.getElementById('photo-preview').src=e.target.result;
+    document.getElementById('photo-preview-wrap').style.display='block';
+    const btn=document.getElementById('analyze-btn');
+    btn.disabled=false;
+    btn.style.background='#1a56db';
+    btn.style.cursor='pointer';
+    document.getElementById('photo-drop-zone').style.borderColor='#1a56db';
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearPhoto(){
+  photoBase64=null;photoMime=null;
+  document.getElementById('photo-preview-wrap').style.display='none';
+  document.getElementById('photo-results').innerHTML='';
+  document.getElementById('photo-input').value='';
+  document.getElementById('photo-drop-zone').style.borderColor='#e0e0e0';
+  const btn=document.getElementById('analyze-btn');
+  btn.disabled=true;btn.style.background='#bbb';btn.style.cursor='not-allowed';
+}
+
+async function analyzePhoto(){
+  if(!photoBase64)return;
+  const btn=document.getElementById('analyze-btn');
+  const lbl=document.getElementById('analyze-label');
+  btn.disabled=true;btn.style.background='#aaa';
+  lbl.textContent='Analyse en cours...';
+  document.getElementById('photo-results').innerHTML=`
+    <div style="text-align:center;padding:20px;color:#888;font-size:13px">
+      <div style="width:28px;height:28px;border:3px solid #e0e0e0;border-top-color:#1a56db;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 10px"></div>
+      Gemini analyse ton repas...
+    </div>`;
+
+  const prompt=`Tu es un nutritionniste expert. Analyse cette photo de repas.
+Identifie TOUS les aliments visibles et estime les quantités en grammes.
+Réponds UNIQUEMENT en JSON valide, sans markdown, sans texte autour :
+{"aliments":[{"nom":"...","quantite_g":150,"calories":200,"proteines_g":25,"lipides_g":8,"glucides_g":10}]}
+Sois précis et réaliste dans tes estimations.`;
+
+  try{
+    const res=await fetch(`${GEMINI_URL}?key=${GEMINI_KEY}`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        contents:[{parts:[
+          {inline_data:{mime_type:photoMime,data:photoBase64}},
+          {text:prompt}
+        ]}],
+        generationConfig:{temperature:0.1}
+      })
+    });
+    const d=await res.json();
+    if(!res.ok)throw new Error(d.error?.message||'Erreur Gemini');
+    const text=d.candidates?.[0]?.content?.parts?.[0]?.text||'';
+    const clean=text.replace(/```json|```/g,'').trim();
+    const parsed=JSON.parse(clean);
+    renderPhotoResults(parsed.aliments);
+  }catch(e){
+    document.getElementById('photo-results').innerHTML=`
+      <div style="color:#e24b4a;font-size:13px;padding:12px;background:#fef2f2;border-radius:8px">
+        ❌ Erreur : ${e.message}
+      </div>`;
+  }
+  btn.disabled=false;btn.style.background='#1a56db';btn.style.cursor='pointer';
+  lbl.textContent='✨ Analyser avec Gemini';
+}
+
+function renderPhotoResults(aliments){
+  if(!aliments||!aliments.length){
+    document.getElementById('photo-results').innerHTML='<div style="color:#888;font-size:13px;padding:12px">Aucun aliment détecté. Essaie avec une photo plus nette.</div>';
+    return;
+  }
+  const isDark=document.body.classList.contains('dark-mode');
+  const bg=isDark?'#1f2937':'#f9f9fb';
+  const border=isDark?'#374151':'#eee';
+  const textMain=isDark?'#f3f4f6':'#1a1a2e';
+  const textSub=isDark?'#9ca3af':'#888';
+
+  let html=aliments.map((a,i)=>`
+    <div id="pres-${i}" style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:${bg};border:1px solid ${border};border-radius:10px;margin-bottom:7px;gap:10px">
+      <div>
+        <div style="font-size:13px;font-weight:600;color:${textMain};margin-bottom:2px">${a.nom}</div>
+        <div style="font-size:11px;color:${textSub}">${a.quantite_g}g · ${a.calories} kcal · P ${a.proteines_g}g · L ${a.lipides_g}g · G ${a.glucides_g}g</div>
+      </div>
+      <button onclick="addPhotoItem(${i})" id="pbtn-${i}" style="padding:6px 12px;border-radius:8px;border:none;background:#1a56db;color:#fff;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">+ Ajouter</button>
+    </div>`).join('');
+
+  html+=`<button onclick="addAllPhotoItems()" style="width:100%;padding:10px;border-radius:9px;border:2px solid #1a56db;background:transparent;color:#1a56db;font-size:13px;font-weight:600;cursor:pointer;margin-top:4px">✅ Tout ajouter (${aliments.length} aliment${aliments.length>1?'s':''})</button>`;
+
+  document.getElementById('photo-results').innerHTML=html;
+  // stocker pour addAllPhotoItems
+  window._photoAliments=aliments;
+}
+
+function addPhotoItem(i){
+  const a=window._photoAliments[i];
+  if(!a)return;
+  const w=a.quantite_g,r=w/100;
+  const k=dayKey(weekOffset,currentDay);
+  getDayLog(k).push({nm:a.nom,w:Math.round(w),cal:Math.round(a.calories),p:r1(a.proteines_g),l:r1(a.lipides_g),g:r1(a.glucides_g)});
+  saveData();render();
+  const btn=document.getElementById(`pbtn-${i}`);
+  const row=document.getElementById(`pres-${i}`);
+  if(btn){btn.textContent='✓';btn.disabled=true;btn.style.background='#3B6D11';}
+  if(row)row.style.opacity='.5';
+}
+
+function addAllPhotoItems(){
+  (window._photoAliments||[]).forEach((_,i)=>addPhotoItem(i));
 }
 
 // ── FIREBASE REMOTE MERGE ────────────────────────────────────────
