@@ -2710,9 +2710,17 @@ function renderPhotoResults(aliments){
 function addPhotoItem(i){
   const a=window._photoAliments[i];
   if(!a)return;
-  const w=a.quantite_g,r=w/100;
+  const w=a.quantite_g;
   const k=dayKey(weekOffset,currentDay);
-  getDayLog(k).push({nm:a.nom,w:Math.round(w),cal:Math.round(a.calories),p:r1(a.proteines_g),l:r1(a.lipides_g),g:r1(a.glucides_g)});
+  if(!data[k])data[k]=[];
+  data[k].push({
+    nm:a.nom,
+    w:Math.round(w),
+    cal:Math.round(a.calories),
+    p:r1(a.proteines_g),
+    l:r1(a.lipides_g),
+    g:r1(a.glucides_g)
+  });
   saveData();render();
   const btn=document.getElementById(`pbtn-${i}`);
   const row=document.getElementById(`pres-${i}`);
@@ -2722,6 +2730,92 @@ function addPhotoItem(i){
 
 function addAllPhotoItems(){
   (window._photoAliments||[]).forEach((_,i)=>addPhotoItem(i));
+}
+
+// ── VOIX INTELLIGENTE (Gemini) ───────────────────────────────────
+async function analyzeVoiceWithGemini(text){
+  const resultsEl=document.getElementById('voice-results');
+  if(!resultsEl)return;
+  resultsEl.innerHTML=`
+    <div style="text-align:center;padding:20px;color:#888;font-size:13px">
+      <div style="width:28px;height:28px;border:3px solid #e0e0e0;border-top-color:#1a56db;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 10px"></div>
+      Gemini analyse ta description...
+    </div>`;
+
+  const prompt=`Tu es un nutritionniste expert. L'utilisateur a dit : "${text}"
+Identifie TOUS les aliments mentionnés et estime les quantités et macros.
+Si une quantité est précisée (ex: "200g de poulet", "3 œufs"), utilise-la. Sinon, estime une portion standard réaliste.
+Réponds UNIQUEMENT en JSON valide, sans markdown, sans texte autour :
+{"aliments":[{"nom":"...","quantite_g":150,"calories":200,"proteines_g":25,"lipides_g":8,"glucides_g":10}]}`;
+
+  try{
+    const res=await fetch(`${GEMINI_URL}?key=${GEMINI_KEY}`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        contents:[{parts:[{text:prompt}]}],
+        generationConfig:{temperature:0.1}
+      })
+    });
+    const d=await res.json();
+    if(!res.ok)throw new Error(d.error?.message||'Erreur Gemini');
+    const rawText=d.candidates?.[0]?.content?.parts?.[0]?.text||'';
+    const clean=rawText.replace(/```json|```/g,'').trim();
+    const parsed=JSON.parse(clean);
+    renderVoiceGeminiResults(parsed.aliments);
+  }catch(e){
+    resultsEl.innerHTML=`<div style="color:#e24b4a;font-size:13px;padding:12px;background:#fef2f2;border-radius:8px">❌ Erreur : ${e.message}</div>`;
+  }
+}
+
+function renderVoiceGeminiResults(aliments){
+  const resultsEl=document.getElementById('voice-results');
+  if(!aliments||!aliments.length){
+    resultsEl.innerHTML='<div style="color:#888;font-size:13px;padding:12px">Aucun aliment détecté. Réessaie.</div>';
+    return;
+  }
+  const isDark=document.body.classList.contains('dark-mode');
+  const bg=isDark?'#1f2937':'#f9f9fb';
+  const border=isDark?'#374151':'#eee';
+  const textMain=isDark?'#f3f4f6':'#1a1a2e';
+  const textSub=isDark?'#9ca3af':'#888';
+  window._voiceAliments=aliments;
+
+  let html=aliments.map((a,i)=>`
+    <div id="vres-${i}" style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:${bg};border:1px solid ${border};border-radius:10px;margin-bottom:7px;gap:10px">
+      <div>
+        <div style="font-size:13px;font-weight:600;color:${textMain};margin-bottom:2px">${a.nom}</div>
+        <div style="font-size:11px;color:${textSub}">${a.quantite_g}g · ${a.calories} kcal · P ${a.proteines_g}g · L ${a.lipides_g}g · G ${a.glucides_g}g</div>
+      </div>
+      <button onclick="addVoiceItem(${i})" id="vbtn-${i}" style="padding:6px 12px;border-radius:8px;border:none;background:#1a56db;color:#fff;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">+ Ajouter</button>
+    </div>`).join('');
+
+  html+=`<button onclick="addAllVoiceItems()" style="width:100%;padding:10px;border-radius:9px;border:2px solid #1a56db;background:transparent;color:#1a56db;font-size:13px;font-weight:600;cursor:pointer;margin-top:4px">✅ Tout ajouter (${aliments.length} aliment${aliments.length>1?'s':''})</button>`;
+  resultsEl.innerHTML=html;
+}
+
+function addVoiceItem(i){
+  const a=window._voiceAliments[i];
+  if(!a)return;
+  const k=dayKey(weekOffset,currentDay);
+  if(!data[k])data[k]=[];
+  data[k].push({
+    nm:a.nom,
+    w:Math.round(a.quantite_g),
+    cal:Math.round(a.calories),
+    p:r1(a.proteines_g),
+    l:r1(a.lipides_g),
+    g:r1(a.glucides_g)
+  });
+  saveData();render();
+  const btn=document.getElementById(`vbtn-${i}`);
+  const row=document.getElementById(`vres-${i}`);
+  if(btn){btn.textContent='✓';btn.disabled=true;btn.style.background='#3B6D11';}
+  if(row)row.style.opacity='.5';
+}
+
+function addAllVoiceItems(){
+  (window._voiceAliments||[]).forEach((_,i)=>addVoiceItem(i));
 }
 
 // ── FIREBASE REMOTE MERGE ────────────────────────────────────────
