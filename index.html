@@ -634,15 +634,10 @@ body.dark-mode .dark-mode-row span{color:#f3f4f6}
       <div class="voice-area">
         <div><button class="mic-btn" id="mic-btn" onclick="toggleVoice()">🎙️</button></div>
         <div class="voice-status" id="voice-status">Appuie sur le micro et décris ce que tu as mangé</div>
-        <div class="voice-transcript" id="voice-transcript"></div>
+        <div class="voice-transcript" id="voice-transcript" style="display:none"></div>
         <div class="no-speech-note" id="no-speech-note">⚠️ Reconnaissance vocale non supportée. Utilise Chrome ou Edge.</div>
       </div>
-      <div class="claude-box" id="claude-box">
-        <div class="claude-box-title">🤖 Étapes suivantes</div>
-        <div class="claude-box-steps"><b>1.</b> Copie le message ci-dessous<br><b>2.</b> Colle-le dans le chat Claude (claude.ai)<br><b>3.</b> Claude te répond avec les macros → rentre-les dans <b>✏️ Manuel</b></div>
-        <div class="claude-message-preview" id="claude-message-preview"></div>
-        <button class="copy-btn" id="copy-btn" onclick="copyVoiceMessage()">📋 Copier le message</button>
-      </div>
+      <div id="voice-results"></div>
     </div>
     <!-- MANUAL -->
     <div id="mode-manual" style="display:none">
