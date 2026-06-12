@@ -1817,28 +1817,61 @@ function addFood(){
 // ── VOICE ────────────────────────────────────────────────────────
 function initVoice(){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SR){document.getElementById('no-speech-note').style.display='block';document.getElementById('mic-btn').classList.add('disabled');return;}
-  recognition=new SR();recognition.lang='fr-FR';recognition.continuous=false;recognition.interimResults=true;
-  recognition.onstart=()=>{isRecording=true;document.getElementById('mic-btn').classList.add('recording');document.getElementById('voice-status').textContent='🔴 Écoute… parle maintenant';document.getElementById('voice-transcript').style.display='block';document.getElementById('voice-transcript').textContent='…';document.getElementById('claude-box').style.display='none';};
-  recognition.onresult=e=>{let f='',i='';for(let x=e.resultIndex;x<e.results.length;x++){if(e.results[x].isFinal)f+=e.results[x][0].transcript;else i+=e.results[x][0].transcript;}voiceText=f||i;document.getElementById('voice-transcript').textContent=voiceText||'…';};
-  recognition.onend=()=>{isRecording=false;document.getElementById('mic-btn').classList.remove('recording');if(voiceText.trim()){document.getElementById('voice-status').textContent='✅ Transcription OK — suis les étapes ci-dessous';showClaudeBox(voiceText);}else document.getElementById('voice-status').textContent='Rien détecté. Réessaie.';};
-  recognition.onerror=e=>{isRecording=false;document.getElementById('mic-btn').classList.remove('recording');document.getElementById('voice-status').textContent='Erreur : '+e.error;};
+  if(!SR){
+    document.getElementById('no-speech-note').style.display='block';
+    document.getElementById('mic-btn').classList.add('disabled');
+    return;
+  }
+  recognition=new SR();
+  recognition.lang='fr-FR';
+  recognition.continuous=false;
+  recognition.interimResults=true;
+  recognition.onstart=()=>{
+    isRecording=true;
+    document.getElementById('mic-btn').classList.add('recording');
+    document.getElementById('voice-status').textContent='🔴 Écoute… parle maintenant';
+    document.getElementById('voice-transcript').style.display='block';
+    document.getElementById('voice-transcript').textContent='…';
+    document.getElementById('voice-results').innerHTML='';
+  };
+  recognition.onresult=e=>{
+    let f='',intr='';
+    for(let x=e.resultIndex;x<e.results.length;x++){
+      if(e.results[x].isFinal)f+=e.results[x][0].transcript;
+      else intr+=e.results[x][0].transcript;
+    }
+    voiceText=f||intr;
+    document.getElementById('voice-transcript').textContent=voiceText||'…';
+  };
+  recognition.onend=()=>{
+    isRecording=false;
+    document.getElementById('mic-btn').classList.remove('recording');
+    if(voiceText.trim()){
+      document.getElementById('voice-status').textContent='✅ Analyse en cours…';
+      analyzeVoiceWithGemini(voiceText);
+    } else {
+      document.getElementById('voice-status').textContent='Rien détecté. Réessaie.';
+    }
+  };
+  recognition.onerror=e=>{
+    isRecording=false;
+    document.getElementById('mic-btn').classList.remove('recording');
+    document.getElementById('voice-status').textContent='Erreur micro : '+e.error+'. Réessaie.';
+  };
 }
 function toggleVoice(){
   if(document.getElementById('mic-btn').classList.contains('disabled'))return;
-  if(isRecording)recognition.stop();
-  else{voiceText='';document.getElementById('claude-box').style.display='none';recognition.start();}
+  if(isRecording){
+    recognition.stop();
+  } else {
+    voiceText='';
+    document.getElementById('voice-results').innerHTML='';
+    document.getElementById('voice-transcript').style.display='none';
+    document.getElementById('voice-status').textContent='Appuie sur le micro et décris ce que tu as mangé';
+    recognition.start();
+  }
 }
-function showClaudeBox(text){
-  const msg=`Analyse ce que j'ai mangé et donne-moi les macros pour chaque aliment.\n\nJ'ai mangé : "${text}"\n\nPour chaque aliment, donne-moi :\nNom | Quantité (g) | Calories (kcal) | Protéines (g) | Lipides (g) | Glucides (g)\n\nSi la quantité n'est pas précisée, estime une portion standard.`;
-  document.getElementById('claude-message-preview').textContent=msg;
-  document.getElementById('claude-box').style.display='block';
-}
-function copyVoiceMessage(){
-  const msg=document.getElementById('claude-message-preview').textContent;
-  const btn=document.getElementById('copy-btn');
-  navigator.clipboard.writeText(msg).catch(()=>{const ta=document.createElement('textarea');ta.value=msg;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);}).finally(()=>{btn.textContent='✅ Copié !';btn.classList.add('copied');setTimeout(()=>{btn.textContent='📋 Copier le message';btn.classList.remove('copied');},3000);});
-}
+
 
 // ── MANUAL ───────────────────────────────────────────────────────
 function addManualRow(){
