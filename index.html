@@ -393,6 +393,8 @@ body.dark-mode .settings-box h3{color:#f3f4f6;border-color:#374151}
 body.dark-mode .insight-card{background:#111827;border-color:#374151}
 body.dark-mode .insight-card .i-val{color:#f3f4f6}
 body.dark-mode .insight-card .i-sub{color:#6b7280}
+body.dark-mode #donut-avg,body.dark-mode #donut-goal{color:#6b7280!important}
+body.dark-mode #donut-days{color:#f3f4f6!important}
 
 /* TOP FOODS */
 .top-food-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #f0f0f0;font-size:13px}
@@ -709,6 +711,41 @@ body.dark-mode .dark-mode-row span{color:#f3f4f6}
   <div class="chart-box" style="margin-top:16px">
     <div class="section-label" style="margin-bottom:14px">Calories par jour (kcal)</div>
     <div class="chart-bars" id="chart-bars-cal"></div>
+  </div>
+
+  <!-- DONUT PROTÉINES -->
+  <div class="chart-box" style="margin-top:16px;text-align:center">
+    <div class="section-label" style="margin-bottom:18px">Objectif protéines — progression hebdomadaire</div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:32px;flex-wrap:wrap">
+      <!-- donut SVG -->
+      <div style="position:relative;width:180px;height:180px;flex-shrink:0">
+        <svg viewBox="0 0 180 180" width="180" height="180" style="transform:rotate(-90deg)">
+          <!-- fond gris -->
+          <circle cx="90" cy="90" r="70" fill="none" stroke="#f0f0f0" stroke-width="20" id="donut-bg"/>
+          <!-- arc de progression -->
+          <circle cx="90" cy="90" r="70" fill="none" stroke="#1a56db" stroke-width="20"
+            stroke-linecap="round"
+            stroke-dasharray="439.8"
+            stroke-dashoffset="439.8"
+            id="donut-arc"
+            style="transition:stroke-dashoffset 1s cubic-bezier(.4,0,.2,1)"/>
+        </svg>
+        <!-- texte central -->
+        <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
+          <div id="donut-pct" style="font-size:28px;font-weight:700;color:#1a56db;line-height:1">0%</div>
+          <div style="font-size:11px;color:#888;margin-top:4px">de l'objectif</div>
+        </div>
+      </div>
+      <!-- légende à droite -->
+      <div style="text-align:left">
+        <div id="donut-days" style="font-size:14px;font-weight:600;color:#1a1a2e;margin-bottom:10px"></div>
+        <div id="donut-avg" style="font-size:13px;color:#888;margin-bottom:6px"></div>
+        <div id="donut-goal" style="font-size:13px;color:#888;margin-bottom:14px"></div>
+        <!-- mini barres par jour -->
+        <div id="donut-mini-bars" style="display:flex;gap:5px;align-items:flex-end;height:40px"></div>
+        <div style="display:flex;gap:5px;margin-top:4px" id="donut-mini-labels"></div>
+      </div>
+    </div>
   </div>
 
   <!-- ─── INSIGHTS ─── -->
@@ -2330,6 +2367,59 @@ function render(){
   buildCopyDaySelect();
 }
 
+// ── DONUT PROTÉINES ──────────────────────────────────────────────
+function renderDonut(totals, dayGoals){
+  const arc=document.getElementById('donut-arc');
+  const bg=document.getElementById('donut-bg');
+  if(!arc)return;
+  const isDark=document.body.classList.contains('dark-mode');
+
+  // Calcul : total protéines ingérées cette semaine vs total objectif semaine
+  const totalP=totals.reduce((a,t)=>a+t.p,0);
+  const totalGoalP=dayGoals.reduce((a,g)=>a+g.p,0);
+  const pct=totalGoalP>0?Math.min(100,Math.round(totalP/totalGoalP*100)):0;
+
+  // Jours où l'objectif est atteint
+  const goalDays=totals.filter((t,i)=>t.p>=dayGoals[i].p).length;
+  const activeDays=totals.filter(t=>t.p>0).length;
+  const avgP=activeDays>0?r1(totalP/activeDays):0;
+
+  // Couleur selon progression
+  const color=pct>=100?'#16a34a':pct>=70?'#1a56db':pct>=40?'#d97706':'#e24b4a';
+
+  // Cercle : circonférence = 2π×70 ≈ 439.8
+  const CIRC=439.8;
+  const offset=CIRC-(pct/100*CIRC);
+  arc.style.strokeDashoffset=offset;
+  arc.setAttribute('stroke',color);
+  bg.setAttribute('stroke',isDark?'#374151':'#f0f0f0');
+
+  // Texte central
+  document.getElementById('donut-pct').textContent=pct+'%';
+  document.getElementById('donut-pct').style.color=color;
+  document.getElementById('donut-days').textContent=`${goalDays}/7 jours objectif atteint`;
+  document.getElementById('donut-days').style.color=isDark?'#f3f4f6':'#1a1a2e';
+  document.getElementById('donut-avg').textContent=`Moyenne : ${avgP}g / jour`;
+  document.getElementById('donut-goal').textContent=`Objectif : ${dayGoals[0].p}g / jour`;
+
+  // Mini barres par jour
+  const maxP=Math.max(...totals.map(t=>t.p),dayGoals[0].p,1);
+  const miniEl=document.getElementById('donut-mini-bars');
+  const miniLbl=document.getElementById('donut-mini-labels');
+  if(miniEl){
+    miniEl.innerHTML=DAYS.map((d,i)=>{
+      const v=totals[i].p;
+      const h=v>0?Math.max(4,Math.round(v/maxP*36)):4;
+      const ok=v>=dayGoals[i].p;
+      const bc=v===0?(isDark?'#374151':'#f0f0f0'):ok?'#16a34a':'#1a56db';
+      return `<div style="flex:1;height:${h}px;background:${bc};border-radius:3px 3px 0 0;min-width:16px;align-self:flex-end"></div>`;
+    }).join('');
+  }
+  if(miniLbl){
+    miniLbl.innerHTML=DAYS.map(d=>`<div style="flex:1;font-size:9px;color:${isDark?'#4b5563':'#bbb'};text-align:center;min-width:16px">${d}</div>`).join('');
+  }
+}
+
 // ── RENDER WEEK PAGE ─────────────────────────────────────────────
 const DAYS=["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"];
 function renderWeekPage(){
@@ -2354,6 +2444,7 @@ function renderWeekPage(){
   const avgGoalCal=Math.round(dayGoals.reduce((a,g)=>a+g.cal,0)/7);
   renderBarChart('chart-bars',totals.map(t=>t.p),'#1a56db',avgGoalP,avg.p>0?avg.p:null,'#16a34a',dayGoals.map(g=>g.p));
   renderBarChart('chart-bars-cal',totals.map(t=>t.cal),'#c0392b',avgGoalCal,null,null,dayGoals.map(g=>g.cal));
+  renderDonut(totals,dayGoals);
 }
 function renderBarChart(containerId,values,color,goal,avg,avgColor,perBarGoals){
   const bars=document.getElementById(containerId);
