@@ -2885,7 +2885,7 @@ function onRecipeSearch(val){
   if(!q){ac.style.display='none';return;}
   const db=getFullDB();
   const pool=db
-    .map(f=>({f,s:fuzzyScore(f.n,q)}))
+    .map((f,idx)=>({f,idx,s:fuzzyScore(f.n,q)}))
     .filter(x=>x.s>25)
     .sort((a,b)=>b.s-a.s)
     .slice(0,8);
@@ -2896,19 +2896,28 @@ function onRecipeSearch(val){
   const textMain=isDark?'#f3f4f6':'#1a1a2e';
   const textSub=isDark?'#9ca3af':'#aaa';
   ac.style.background=bg;
-  ac.innerHTML=pool.map(({f})=>`
-    <div onclick="pickRecipeFood('${f.n.replace(/'/g,"&#39;")}')"
+  ac.innerHTML=pool.map(({f,idx})=>`
+    <div data-idx="${idx}"
       style="padding:9px 12px;cursor:pointer;border-bottom:0.5px solid ${isDark?'#374151':'#f5f5f5'}"
       onmouseover="this.style.background='${hover}'" onmouseout="this.style.background='${bg}'">
       <div style="font-weight:600;font-size:12px;color:${textMain}">${f.n}</div>
       <div style="font-size:11px;color:${textSub}">${f.c} kcal · P ${f.p}g · L ${f.l}g · G ${f.g}g / 100g</div>
     </div>`).join('');
+  // attacher les events via JS pour éviter tout problème d'échappement
+  ac.querySelectorAll('[data-idx]').forEach(el=>{
+    el.addEventListener('click',()=>{
+      const idx=parseInt(el.getAttribute('data-idx'));
+      pickRecipeFoodByIdx(idx);
+    });
+  });
   ac.style.display='block';
 }
 
-function pickRecipeFood(name){
-  rfSelectedFood=getFullDB().find(f=>f.n===name)||null;
-  document.getElementById('rf-search').value=name;
+function pickRecipeFoodByIdx(idx){
+  const db=getFullDB();
+  rfSelectedFood=db[idx]||null;
+  if(!rfSelectedFood)return;
+  document.getElementById('rf-search').value=rfSelectedFood.n;
   document.getElementById('rf-ac').style.display='none';
   document.getElementById('rf-qty').focus();
 }
@@ -2947,15 +2956,48 @@ function renderRecipeIngredients(){
     const r=ing.qty/100;
     const cal=Math.round(ing.food.c*r);
     const p=r1(ing.food.p*r);
-    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 10px;background:${isDark?'#111827':'#f9f9fb'};border-radius:8px;margin-bottom:5px;border:1px solid ${isDark?'#374151':'#eee'}">
-      <div>
-        <div style="font-size:12px;font-weight:600;color:${isDark?'#f3f4f6':'#1a1a2e'}">${ing.food.n}</div>
-        <div style="font-size:11px;color:${isDark?'#9ca3af':'#888'}">${ing.qty}g · ${cal} kcal · P ${p}g</div>
+    return `<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:${isDark?'#111827':'#f9f9fb'};border-radius:8px;margin-bottom:5px;border:1px solid ${isDark?'#374151':'#eee'}">
+      <div style="flex:1;min-width:0">
+        <!-- nom éditable -->
+        <input type="text" value="${ing.food.n.replace(/"/g,'&quot;')}"
+          onchange="updateIngredientName(${i},this.value)"
+          style="width:100%;font-size:12px;font-weight:600;color:${isDark?'#f3f4f6':'#1a1a2e'};background:transparent;border:none;outline:none;border-bottom:1px solid ${isDark?'#374151':'#e0e0e0'};padding:2px 0;margin-bottom:4px">
+        <div style="display:flex;align-items:center;gap:6px">
+          <!-- quantité éditable -->
+          <input type="number" value="${ing.qty}" min="1"
+            onchange="updateIngredientQty(${i},this.value)"
+            oninput="updateIngredientQty(${i},this.value)"
+            style="width:60px;font-size:11px;color:${isDark?'#9ca3af':'#888'};background:${isDark?'#1f2937':'#fff'};border:1px solid ${isDark?'#374151':'#e0e0e0'};border-radius:6px;padding:3px 6px;outline:none">
+          <span style="font-size:11px;color:${isDark?'#6b7280':'#aaa'}">g</span>
+          <span style="font-size:11px;color:${isDark?'#9ca3af':'#888'}">· ${cal} kcal · P ${p}g</span>
+        </div>
       </div>
-      <button onclick="removeRecipeIngredient(${i})" style="border:none;background:none;color:${isDark?'#6b7280':'#ddd'};cursor:pointer;font-size:14px;padding:4px">✕</button>
+      <button onclick="removeRecipeIngredient(${i})" style="border:none;background:none;color:${isDark?'#6b7280':'#ddd'};cursor:pointer;font-size:16px;padding:4px;flex-shrink:0">✕</button>
     </div>`;
   }).join('');
   recalcRecipe();
+}
+
+function updateIngredientQty(i, val){
+  const qty=parseFloat(val)||0;
+  if(qty>0){
+    recipeIngredients[i].qty=qty;
+    recalcRecipe();
+    // mettre à jour les macros affichées sans re-render complet
+    const r=qty/100;
+    const ing=recipeIngredients[i];
+    const row=document.querySelectorAll('#rf-ingredients > div')[i];
+    if(row){
+      const span=row.querySelector('span:last-of-type');
+      if(span)span.textContent=`· ${Math.round(ing.food.c*r)} kcal · P ${r1(ing.food.p*r)}g`;
+    }
+  }
+}
+
+function updateIngredientName(i, val){
+  if(val.trim()){
+    recipeIngredients[i].food={...recipeIngredients[i].food,n:val.trim()};
+  }
 }
 
 function recalcRecipe(){
