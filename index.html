@@ -575,6 +575,7 @@ body.dark-mode .dark-mode-row span{color:#f3f4f6}
   <button class="main-tab" onclick="showPage('stats')" id="ptab-stats">📊 Statistiques</button>
   <button class="main-tab" onclick="showPage('aliments')" id="ptab-aliments">🥦 Aliments</button>
   <button class="main-tab" onclick="showPage('objectifs')" id="ptab-objectifs">🎯 Objectifs</button>
+  <button class="main-tab" onclick="showPage('etirements')" id="ptab-etirements">🧘 Étirements</button>
 </div>
 
 <!-- ══════════════════════════════════════════════ PAGE JOURNAL -->
@@ -955,29 +956,192 @@ body.dark-mode .dark-mode-row span{color:#f3f4f6}
   </div>
 </div>
 
+<!-- ══════════════════════════════════════════════ PAGE ÉTIREMENTS -->
+<div id="page-etirements" style="display:none">
+
+  <!-- Intro / contrôles -->
+  <div class="settings-box" id="stretch-intro">
+    <h3>🧘 Séance d'étirements Full Body — 15 min</h3>
+    <p style="font-size:13px;color:#888;margin-bottom:16px;line-height:1.6">
+      12 exercices guidés pour étirer tout le corps. La voix te guidera à chaque mouvement — tu peux poser l'écran et écouter.
+    </p>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px">
+      <div style="text-align:center;padding:12px;background:#f0f4ff;border-radius:10px">
+        <div style="font-size:22px;font-weight:700;color:#1a56db">12</div>
+        <div style="font-size:11px;color:#888;margin-top:2px">exercices</div>
+      </div>
+      <div style="text-align:center;padding:12px;background:#EAF3DE;border-radius:10px">
+        <div style="font-size:22px;font-weight:700;color:#3B6D11">15</div>
+        <div style="font-size:11px;color:#888;margin-top:2px">minutes</div>
+      </div>
+      <div style="text-align:center;padding:12px;background:#fef3c7;border-radius:10px">
+        <div style="font-size:22px;font-weight:700;color:#d97706">45s</div>
+        <div style="font-size:11px;color:#888;margin-top:2px">par exercice</div>
+      </div>
+    </div>
+    <!-- liste des exercices -->
+    <div style="margin-bottom:20px">
+      <div style="font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Programme</div>
+      <div id="stretch-program-list"></div>
+    </div>
+    <button onclick="startStretch()" style="width:100%;padding:16px;border-radius:12px;border:none;background:#1a56db;color:#fff;font-size:16px;font-weight:700;cursor:pointer;transition:.2s;display:flex;align-items:center;justify-content:center;gap:10px">
+      ▶ Lancer la séance
+    </button>
+  </div>
+
+  <!-- Séance en cours -->
+  <div id="stretch-session" style="display:none">
+    <!-- Barre de progression globale -->
+    <div style="margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <span style="font-size:12px;font-weight:600;color:#888" id="stretch-progress-label">Exercice 1 / 12</span>
+        <span style="font-size:12px;color:#888" id="stretch-time-total">15:00</span>
+      </div>
+      <div style="height:6px;background:#f0f0f0;border-radius:3px;overflow:hidden">
+        <div id="stretch-progress-bar" style="height:6px;background:#1a56db;border-radius:3px;width:0%;transition:width .5s"></div>
+      </div>
+    </div>
+
+    <!-- Carte exercice courant -->
+    <div class="settings-box" style="text-align:center;padding:28px 20px">
+      <div style="font-size:48px;margin-bottom:12px" id="stretch-emoji">🧘</div>
+      <div style="font-size:22px;font-weight:700;color:#1a1a2e;margin-bottom:6px" id="stretch-name">—</div>
+      <div style="font-size:13px;color:#888;margin-bottom:24px;line-height:1.6;max-width:340px;margin-left:auto;margin-right:auto" id="stretch-desc">—</div>
+
+      <!-- Cercle timer -->
+      <div style="position:relative;width:150px;height:150px;margin:0 auto 24px">
+        <svg viewBox="0 0 150 150" width="150" height="150" style="transform:rotate(-90deg)">
+          <circle cx="75" cy="75" r="65" fill="none" stroke="#f0f0f0" stroke-width="10"/>
+          <circle cx="75" cy="75" r="65" fill="none" stroke="#1a56db" stroke-width="10"
+            stroke-linecap="round"
+            stroke-dasharray="408.4"
+            stroke-dashoffset="0"
+            id="stretch-timer-arc"
+            style="transition:stroke-dashoffset .5s linear"/>
+        </svg>
+        <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
+          <div id="stretch-countdown" style="font-size:42px;font-weight:700;color:#1a56db;line-height:1">45</div>
+          <div style="font-size:11px;color:#888">secondes</div>
+        </div>
+      </div>
+
+      <!-- Contrôles -->
+      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+        <button onclick="pauseStretch()" id="stretch-pause-btn" style="padding:12px 24px;border-radius:10px;border:1.5px solid #e0e0e0;background:#fff;font-size:14px;font-weight:600;cursor:pointer;min-width:120px;color:#333">
+          ⏸ Pause
+        </button>
+        <button onclick="skipStretch()" style="padding:12px 24px;border-radius:10px;border:none;background:#f0f4ff;color:#1a56db;font-size:14px;font-weight:600;cursor:pointer;min-width:120px">
+          ⏭ Suivant
+        </button>
+        <button onclick="stopStretch()" style="padding:12px 24px;border-radius:10px;border:1.5px solid #fee2e2;background:#fff;color:#e24b4a;font-size:14px;font-weight:600;cursor:pointer;min-width:120px">
+          ⏹ Arrêter
+        </button>
+      </div>
+    </div>
+
+    <!-- Prochain exercice -->
+    <div style="text-align:center;padding:10px;font-size:12px;color:#aaa" id="stretch-next-label"></div>
+  </div>
+
+  <!-- Fin de séance -->
+  <div id="stretch-done" style="display:none">
+    <div class="settings-box" style="text-align:center;padding:32px 20px">
+      <div style="font-size:56px;margin-bottom:12px">🎉</div>
+      <div style="font-size:22px;font-weight:700;color:#3B6D11;margin-bottom:8px">Séance terminée !</div>
+      <div style="font-size:14px;color:#888;margin-bottom:24px">Bravo ! Tu as complété 15 minutes d'étirements full body.</div>
+      <button onclick="resetStretch()" style="padding:14px 32px;border-radius:12px;border:none;background:#1a56db;color:#fff;font-size:15px;font-weight:700;cursor:pointer">
+        🔄 Recommencer
+      </button>
+    </div>
+  </div>
+
+</div>
+
 <!-- MODAL FOOD EDITOR -->
 <div class="modal-overlay" id="modal-overlay">
-  <div class="modal">
+  <div class="modal" style="max-width:560px;max-height:90vh;overflow-y:auto">
     <h3 id="modal-title">Nouvel aliment</h3>
-    <div class="modal-grid">
-      <div class="modal-field full"><label>Nom</label><input type="text" id="mf-name" placeholder="Ex: Poulet blanc cuit"></div>
-      <div class="modal-field full">
-        <label>Catégorie</label>
-        <select id="mf-cat"></select>
+
+    <!-- MODE TABS -->
+    <div style="display:flex;gap:0;margin-bottom:16px;border:1px solid #e0e0e0;border-radius:10px;overflow:hidden;background:#f9f9f9">
+      <button id="modal-tab-manual" onclick="setModalMode('manual')" style="flex:1;padding:9px;font-size:13px;font-weight:600;border:none;background:#1a56db;color:#fff;cursor:pointer">✏️ Saisie manuelle</button>
+      <button id="modal-tab-recipe" onclick="setModalMode('recipe')" style="flex:1;padding:9px;font-size:13px;font-weight:600;border:none;background:transparent;color:#888;cursor:pointer;border-left:1px solid #e0e0e0">🍳 Créer une recette</button>
+    </div>
+
+    <!-- MODE MANUEL -->
+    <div id="modal-mode-manual">
+      <div class="modal-grid">
+        <div class="modal-field full"><label>Nom</label><input type="text" id="mf-name" placeholder="Ex: Poulet blanc cuit"></div>
+        <div class="modal-field full">
+          <label>Catégorie</label>
+          <select id="mf-cat"></select>
+        </div>
+        <div class="modal-field"><label>Calories (kcal / 100g)</label><input type="number" id="mf-cal" min="0" step="0.1"></div>
+        <div class="modal-field"><label>Protéines (g / 100g)</label><input type="number" id="mf-prot" min="0" step="0.1"></div>
+        <div class="modal-field"><label>Lipides (g / 100g)</label><input type="number" id="mf-lip" min="0" step="0.1"></div>
+        <div class="modal-field"><label>Glucides (g / 100g)</label><input type="number" id="mf-gluc" min="0" step="0.1"></div>
       </div>
-      <div class="modal-field"><label>Calories (kcal / 100g)</label><input type="number" id="mf-cal" min="0" step="0.1"></div>
-      <div class="modal-field"><label>Protéines (g / 100g)</label><input type="number" id="mf-prot" min="0" step="0.1"></div>
-      <div class="modal-field"><label>Lipides (g / 100g)</label><input type="number" id="mf-lip" min="0" step="0.1"></div>
-      <div class="modal-field"><label>Glucides (g / 100g)</label><input type="number" id="mf-gluc" min="0" step="0.1"></div>
+      <label class="dw-toggle"><input type="checkbox" id="mf-dw-check" onchange="toggleDWFields()"> Poids prédéfini (portion fixe)</label>
+      <div id="mf-dw-fields" style="display:none" class="modal-grid">
+        <div class="modal-field"><label>Poids (g)</label><input type="number" id="mf-dw" min="1"></div>
+        <div class="modal-field"><label>Unité</label><input type="text" id="mf-unit" placeholder="Ex: œuf, burger..."></div>
+      </div>
     </div>
-    <label class="dw-toggle"><input type="checkbox" id="mf-dw-check" onchange="toggleDWFields()"> Poids prédéfini (portion fixe)</label>
-    <div id="mf-dw-fields" style="display:none" class="modal-grid">
-      <div class="modal-field"><label>Poids (g)</label><input type="number" id="mf-dw" min="1"></div>
-      <div class="modal-field"><label>Unité</label><input type="text" id="mf-unit" placeholder="Ex: œuf, burger..."></div>
+
+    <!-- MODE RECETTE -->
+    <div id="modal-mode-recipe" style="display:none">
+      <div class="modal-grid" style="margin-bottom:12px">
+        <div class="modal-field full"><label>Nom de la recette</label><input type="text" id="rf-name" placeholder="Ex: Bol de riz au poulet"></div>
+        <div class="modal-field full">
+          <label>Catégorie</label>
+          <select id="rf-cat"></select>
+        </div>
+        <div class="modal-field full">
+          <label>Portions (nombre de personnes)</label>
+          <input type="number" id="rf-portions" min="1" value="1" oninput="recalcRecipe()">
+        </div>
+      </div>
+
+      <!-- Recherche ingrédient -->
+      <div style="font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Ingrédients</div>
+      <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center">
+        <div style="position:relative;flex:1">
+          <input type="text" id="rf-search" placeholder="Rechercher un ingrédient..." autocomplete="off"
+            oninput="onRecipeSearch(this.value)"
+            style="width:100%;padding:8px 12px;border:1.5px solid #e0e0e0;border-radius:9px;font-size:13px;outline:none;background:#fafafa">
+          <div id="rf-ac" style="display:none;position:absolute;top:40px;left:0;right:0;background:#fff;border:1.5px solid #e0e0e0;border-radius:10px;z-index:9999;max-height:200px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.12)"></div>
+        </div>
+        <input type="number" id="rf-qty" placeholder="g" min="1" style="width:80px;padding:8px;border:1.5px solid #e0e0e0;border-radius:9px;font-size:13px;outline:none;background:#fafafa">
+        <button onclick="addRecipeIngredient()" style="padding:8px 14px;border-radius:9px;border:none;background:#1a56db;color:#fff;font-size:13px;font-weight:600;cursor:pointer">+</button>
+      </div>
+
+      <!-- Liste ingrédients -->
+      <div id="rf-ingredients" style="margin-bottom:14px;min-height:40px"></div>
+
+      <!-- Macros calculées -->
+      <div style="background:#f9f9fb;border-radius:10px;padding:12px 14px;border:1px solid #eee">
+        <div style="font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Macros totales de la recette</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:8px">
+          <div style="text-align:center"><div id="rf-total-cal" style="font-size:16px;font-weight:700;color:#c0392b">0</div><div style="font-size:10px;color:#888">kcal total</div></div>
+          <div style="text-align:center"><div id="rf-total-p" style="font-size:16px;font-weight:700;color:#1a56db">0g</div><div style="font-size:10px;color:#888">Protéines</div></div>
+          <div style="text-align:center"><div id="rf-total-l" style="font-size:16px;font-weight:700;color:#d97706">0g</div><div style="font-size:10px;color:#888">Lipides</div></div>
+          <div style="text-align:center"><div id="rf-total-g" style="font-size:16px;font-weight:700;color:#16a34a">0g</div><div style="font-size:10px;color:#888">Glucides</div></div>
+        </div>
+        <div style="border-top:1px solid #eee;padding-top:8px">
+          <div style="font-size:11px;color:#aaa;margin-bottom:6px">Par portion (÷ <span id="rf-portions-display">1</span>)</div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+            <div style="text-align:center"><div id="rf-per-cal" style="font-size:14px;font-weight:700;color:#c0392b">0</div><div style="font-size:10px;color:#888">kcal</div></div>
+            <div style="text-align:center"><div id="rf-per-p" style="font-size:14px;font-weight:700;color:#1a56db">0g</div><div style="font-size:10px;color:#888">Prot.</div></div>
+            <div style="text-align:center"><div id="rf-per-l" style="font-size:14px;font-weight:700;color:#d97706">0g</div><div style="font-size:10px;color:#888">Lip.</div></div>
+            <div style="text-align:center"><div id="rf-per-g" style="font-size:14px;font-weight:700;color:#16a34a">0g</div><div style="font-size:10px;color:#888">Gluc.</div></div>
+          </div>
+        </div>
+      </div>
     </div>
-    <div class="modal-actions">
+
+    <div class="modal-actions" style="margin-top:16px">
       <button class="modal-cancel" onclick="closeModal()">Annuler</button>
-      <button class="modal-save" onclick="saveFood()">💾 Enregistrer</button>
+      <button class="modal-save" onclick="saveFoodOrRecipe()">💾 Enregistrer</button>
     </div>
   </div>
 </div>
@@ -1750,13 +1914,14 @@ function pushEntry(name,w,food){
 
 // ── PAGES ────────────────────────────────────────────────────────
 function showPage(page){
-  ['journal','stats','aliments','objectifs'].forEach(p=>{
+  ['journal','stats','aliments','objectifs','etirements'].forEach(p=>{
     document.getElementById('page-'+p).style.display=p===page?'block':'none';
     document.getElementById('ptab-'+p).classList.toggle('active',p===page);
   });
   if(page==='stats'){renderWeekPage();renderMonthPage();renderYearPage();}
   if(page==='aliments')renderDBTable();
   if(page==='objectifs')loadGoalsForm();
+  if(page==='etirements')initStretchPage();
 }
 
 // ── MODES ────────────────────────────────────────────────────────
@@ -1834,7 +1999,10 @@ function pick(i){
   document.getElementById('ac').style.display='none';
   renderWeightInput();updatePreview();
 }
-document.addEventListener('click',e=>{if(!e.target.closest('.srch-wrap')&&!e.target.closest('.modal-overlay'))document.getElementById('ac').style.display='none';});
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.srch-wrap')&&!e.target.closest('.modal-overlay'))document.getElementById('ac').style.display='none';
+  if(!e.target.closest('#modal-overlay'))document.getElementById('rf-ac').style.display='none';
+});
 function updatePreview(){
   if(!selected){document.getElementById('preview').textContent='';return;}
   if(selected.dw){const w=qty*selected.dw,r=w/100;document.getElementById('preview').textContent=`${qty} ${selected.unit}${qty>1?'s':''} = ${w}g → ${Math.round(selected.c*r)} kcal · P ${r1(selected.p*r)}g · L ${r1(selected.l*r)}g · G ${r1(selected.g*r)}g`;}
@@ -2091,16 +2259,23 @@ function openModal(idx=null){
   editingFoodIdx=idx;
   const modal=document.getElementById('modal-overlay');
   const db=getFullDB();
+  // toujours démarrer en mode manuel
+  currentModalMode='manual';
+  setModalMode('manual');
+  recipeIngredients=[];
+  rfSelectedFood=null;
   // populate cat select
   const catSel=document.getElementById('mf-cat');
   const keys=[...getCatKeys(),'+ Nouvelle catégorie'];
   catSel.innerHTML=keys.map(k=>`<option value="${k}">${k}</option>`).join('');
   if(idx===null){
-    document.getElementById('modal-title').textContent='Nouvel aliment';
+    document.getElementById('modal-title').textContent='Nouvel aliment / Recette';
     ['mf-name','mf-cal','mf-prot','mf-lip','mf-gluc','mf-dw','mf-unit'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
     document.getElementById('mf-dw-check').checked=false;
     document.getElementById('mf-dw-fields').style.display='none';
   } else {
+    // mode édition → toujours manuel, on cache l'onglet recette
+    document.getElementById('modal-tab-recipe').style.display='none';
     const f=db[idx];
     document.getElementById('modal-title').textContent='Modifier : '+f.n;
     document.getElementById('mf-name').value=f.n;
@@ -2116,7 +2291,13 @@ function openModal(idx=null){
   }
   modal.classList.add('open');
 }
-function closeModal(){document.getElementById('modal-overlay').classList.remove('open');editingFoodIdx=null;}
+function closeModal(){
+  document.getElementById('modal-overlay').classList.remove('open');
+  document.getElementById('modal-tab-recipe').style.display='';
+  editingFoodIdx=null;
+  recipeIngredients=[];
+  rfSelectedFood=null;
+}
 function toggleDWFields(){document.getElementById('mf-dw-fields').style.display=document.getElementById('mf-dw-check').checked?'grid':'none';}
 function saveFood(){
   const name=document.getElementById('mf-name').value.trim();
@@ -2674,6 +2855,188 @@ function renderInsights(){
   }
 }
 
+// ── RECETTE ──────────────────────────────────────────────────────
+let recipeIngredients=[]; // [{food, qty}]
+let currentModalMode='manual';
+let rfSelectedFood=null;
+
+function setModalMode(mode){
+  currentModalMode=mode;
+  document.getElementById('modal-mode-manual').style.display=mode==='manual'?'block':'none';
+  document.getElementById('modal-mode-recipe').style.display=mode==='recipe'?'block':'none';
+  document.getElementById('modal-tab-manual').style.background=mode==='manual'?'#1a56db':'transparent';
+  document.getElementById('modal-tab-manual').style.color=mode==='manual'?'#fff':'#888';
+  document.getElementById('modal-tab-recipe').style.background=mode==='recipe'?'#1a56db':'transparent';
+  document.getElementById('modal-tab-recipe').style.color=mode==='recipe'?'#fff':'#888';
+  if(mode==='recipe'){
+    // populate categorie select
+    const cats=getCatKeys();
+    const rfCat=document.getElementById('rf-cat');
+    rfCat.innerHTML=cats.map(c=>`<option value="${c}">${c}</option>`).join('')+'<option value="Recettes">Recettes</option>';
+    rfCat.value='Recettes';
+    recipeIngredients=[];
+    renderRecipeIngredients();
+  }
+}
+
+function onRecipeSearch(val){
+  const ac=document.getElementById('rf-ac');
+  const q=val.trim();
+  if(!q){ac.style.display='none';return;}
+  const db=getFullDB();
+  const pool=db
+    .map(f=>({f,s:fuzzyScore(f.n,q)}))
+    .filter(x=>x.s>25)
+    .sort((a,b)=>b.s-a.s)
+    .slice(0,8);
+  if(!pool.length){ac.style.display='none';return;}
+  const isDark=document.body.classList.contains('dark-mode');
+  const bg=isDark?'#1f2937':'#fff';
+  const hover=isDark?'#374151':'#f5f8ff';
+  const textMain=isDark?'#f3f4f6':'#1a1a2e';
+  const textSub=isDark?'#9ca3af':'#aaa';
+  ac.style.background=bg;
+  ac.innerHTML=pool.map(({f})=>`
+    <div onclick="pickRecipeFood('${f.n.replace(/'/g,"&#39;")}')"
+      style="padding:9px 12px;cursor:pointer;border-bottom:0.5px solid ${isDark?'#374151':'#f5f5f5'}"
+      onmouseover="this.style.background='${hover}'" onmouseout="this.style.background='${bg}'">
+      <div style="font-weight:600;font-size:12px;color:${textMain}">${f.n}</div>
+      <div style="font-size:11px;color:${textSub}">${f.c} kcal · P ${f.p}g · L ${f.l}g · G ${f.g}g / 100g</div>
+    </div>`).join('');
+  ac.style.display='block';
+}
+
+function pickRecipeFood(name){
+  rfSelectedFood=getFullDB().find(f=>f.n===name)||null;
+  document.getElementById('rf-search').value=name;
+  document.getElementById('rf-ac').style.display='none';
+  document.getElementById('rf-qty').focus();
+}
+
+function addRecipeIngredient(){
+  if(!rfSelectedFood){alert('Sélectionne un ingrédient d\'abord.');return;}
+  const qty=parseFloat(document.getElementById('rf-qty').value)||0;
+  if(qty<=0){alert('Entre une quantité en grammes.');return;}
+  // vérifier doublon
+  const existing=recipeIngredients.findIndex(i=>i.food.n===rfSelectedFood.n);
+  if(existing>=0){
+    recipeIngredients[existing].qty+=qty;
+  } else {
+    recipeIngredients.push({food:{...rfSelectedFood},qty});
+  }
+  document.getElementById('rf-search').value='';
+  document.getElementById('rf-qty').value='';
+  rfSelectedFood=null;
+  renderRecipeIngredients();
+}
+
+function removeRecipeIngredient(i){
+  recipeIngredients.splice(i,1);
+  renderRecipeIngredients();
+}
+
+function renderRecipeIngredients(){
+  const el=document.getElementById('rf-ingredients');
+  const isDark=document.body.classList.contains('dark-mode');
+  if(!recipeIngredients.length){
+    el.innerHTML=`<div style="font-size:12px;color:${isDark?'#6b7280':'#bbb'};padding:8px 0;text-align:center">Aucun ingrédient ajouté</div>`;
+    recalcRecipe();
+    return;
+  }
+  el.innerHTML=recipeIngredients.map((ing,i)=>{
+    const r=ing.qty/100;
+    const cal=Math.round(ing.food.c*r);
+    const p=r1(ing.food.p*r);
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 10px;background:${isDark?'#111827':'#f9f9fb'};border-radius:8px;margin-bottom:5px;border:1px solid ${isDark?'#374151':'#eee'}">
+      <div>
+        <div style="font-size:12px;font-weight:600;color:${isDark?'#f3f4f6':'#1a1a2e'}">${ing.food.n}</div>
+        <div style="font-size:11px;color:${isDark?'#9ca3af':'#888'}">${ing.qty}g · ${cal} kcal · P ${p}g</div>
+      </div>
+      <button onclick="removeRecipeIngredient(${i})" style="border:none;background:none;color:${isDark?'#6b7280':'#ddd'};cursor:pointer;font-size:14px;padding:4px">✕</button>
+    </div>`;
+  }).join('');
+  recalcRecipe();
+}
+
+function recalcRecipe(){
+  const portions=Math.max(1,parseInt(document.getElementById('rf-portions')?.value)||1);
+  document.getElementById('rf-portions-display').textContent=portions;
+  let totCal=0,totP=0,totL=0,totG=0,totW=0;
+  recipeIngredients.forEach(({food,qty})=>{
+    const r=qty/100;
+    totCal+=food.c*r;
+    totP+=food.p*r;
+    totL+=food.l*r;
+    totG+=food.g*r;
+    totW+=qty;
+  });
+  document.getElementById('rf-total-cal').textContent=Math.round(totCal);
+  document.getElementById('rf-total-p').textContent=r1(totP)+'g';
+  document.getElementById('rf-total-l').textContent=r1(totL)+'g';
+  document.getElementById('rf-total-g').textContent=r1(totG)+'g';
+  document.getElementById('rf-per-cal').textContent=Math.round(totCal/portions);
+  document.getElementById('rf-per-p').textContent=r1(totP/portions)+'g';
+  document.getElementById('rf-per-l').textContent=r1(totL/portions)+'g';
+  document.getElementById('rf-per-g').textContent=r1(totG/portions)+'g';
+}
+
+function saveFoodOrRecipe(){
+  if(currentModalMode==='recipe'){
+    saveRecipe();
+  } else {
+    saveFood();
+  }
+}
+
+function saveRecipe(){
+  const name=document.getElementById('rf-name').value.trim();
+  if(!name){alert('Entre un nom pour la recette.');return;}
+  if(!recipeIngredients.length){alert('Ajoute au moins un ingrédient.');return;}
+  let cat=document.getElementById('rf-cat').value;
+  const portions=Math.max(1,parseInt(document.getElementById('rf-portions').value)||1);
+
+  // Calcul des macros totales
+  let totCal=0,totP=0,totL=0,totG=0,totW=0;
+  recipeIngredients.forEach(({food,qty})=>{
+    const r=qty/100;
+    totCal+=food.c*r;
+    totP+=food.p*r;
+    totL+=food.l*r;
+    totG+=food.g*r;
+    totW+=qty;
+  });
+
+  // Poids total et macros par portion
+  const wPortion=Math.round(totW/portions);
+  // On sauvegarde les macros pour 100g (standard de la BDD)
+  const cPer100=totW>0?r1(totCal/totW*100):0;
+  const pPer100=totW>0?r1(totP/totW*100):0;
+  const lPer100=totW>0?r1(totL/totW*100):0;
+  const gPer100=totW>0?r1(totG/totW*100):0;
+
+  const food={
+    n:name,
+    cat,
+    c:cPer100,
+    p:pPer100,
+    l:lPer100,
+    g:gPer100,
+    // poids prédéfini = 1 portion
+    dw:wPortion,
+    unit:'portion',
+    // stocker les ingrédients pour référence
+    _recipe:recipeIngredients.map(i=>({n:i.food.n,qty:i.qty})),
+    _portions:portions
+  };
+  customFoods.push(food);
+  localStorage.setItem(LS_CUSTOM,JSON.stringify(customFoods));
+  if(window.firebaseSave)window.firebaseSave(getStatePayload());
+  closeModal();
+  buildCatFilters();
+  renderDBTable();
+  showStatus(`Recette "${name}" enregistrée ✓`,'ok');
+}
+
 // ── GOALS HISTORY DISPLAY ────────────────────────────────────────
 function renderGoalsHistory(){
   const el=document.getElementById('goals-history-list');
@@ -2985,6 +3348,211 @@ window._mergeRemoteData = function(remote) {
     if(dot) dot.style.background = '#3B6D11';
   }
 };
+
+// ── ÉTIREMENTS ───────────────────────────────────────────────────
+const STRETCH_EXERCISES=[
+  {name:"Cou — rotations",emoji:"🔄",duration:45,desc:"Fais des rotations lentes de la tête de gauche à droite. Garde les épaules relâchées.",voice:"Exercice 1. Rotations du cou. Fais des rotations lentes de la tête, gauche, droite. Reste détendu."},
+  {name:"Épaules — étirement croisé",emoji:"🤲",duration:45,desc:"Amène ton bras gauche devant toi et tire-le doucement avec le bras droit. Change de côté à mi-parcours.",voice:"Exercice 2. Étirement des épaules. Amène ton bras devant et tire-le doucement vers toi. Change de côté après 20 secondes."},
+  {name:"Triceps — bras derrière la tête",emoji:"💪",duration:45,desc:"Lève le bras droit, plie-le derrière la tête et pousse doucement avec la main gauche. Change à mi-parcours.",voice:"Exercice 3. Étirement des triceps. Lève un bras, plie-le derrière la tête, et pousse doucement. Change de bras à mi-parcours."},
+  {name:"Poitrine — ouverture",emoji:"🫀",duration:45,desc:"Entrelace tes doigts dans le dos, ouvre la poitrine et lève légèrement les bras vers l'arrière.",voice:"Exercice 4. Ouverture de la poitrine. Entrelace tes doigts dans le dos et ouvre bien la poitrine vers l'avant."},
+  {name:"Dos — étirement chat-vache",emoji:"🐱",duration:45,desc:"À quatre pattes, creuse le dos en inspirant, arrondis-le en expirant. Synchronise avec ta respiration.",voice:"Exercice 5. Chat vache. À quatre pattes, creuse le dos en inspirant, arrondis en expirant. Suis ta respiration."},
+  {name:"Côtés — inclinaison latérale",emoji:"↔️",duration:45,desc:"Debout, lève le bras gauche et penche-toi vers la droite. Tiens 20 secondes et change de côté.",voice:"Exercice 6. Inclinaison latérale. Lève un bras et penche-toi sur le côté. Tiens 20 secondes puis changez de côté."},
+  {name:"Abdos — cobra",emoji:"🐍",duration:45,desc:"Allongé sur le ventre, pose les mains sous les épaules et pousse doucement pour lever le buste.",voice:"Exercice 7. Pose du cobra. Allonge-toi sur le ventre, mains sous les épaules, et lève doucement le buste."},
+  {name:"Hanches — fente basse",emoji:"🏃",duration:45,desc:"En fente avant, abaisse le genou arrière au sol et pousse les hanches vers l'avant. Change à mi-parcours.",voice:"Exercice 8. Fente basse. En fente avant, abaisse le genou arrière et pousse les hanches. Change de jambe à mi-parcours."},
+  {name:"Ischios — flexion avant",emoji:"🙇",duration:45,desc:"Debout, jambes tendues, penche-toi vers l'avant et laisse descendre les bras vers le sol. Détends-toi.",voice:"Exercice 9. Flexion avant. Debout, jambes tendues, descends doucement les mains vers le sol. Relâche le dos."},
+  {name:"Quadriceps — flamant rose",emoji:"🦩",duration:45,desc:"Debout sur un pied, ramène l'autre talon vers les fessiers. Tiens un mur si besoin. Change à mi-parcours.",voice:"Exercice 10. Étirement des quadriceps. Debout, ramène ton talon vers les fessiers et tiens la position. Change de jambe."},
+  {name:"Mollets — montée sur pointes",emoji:"🦶",duration:45,desc:"Appuie-toi contre un mur, avance un pied, laisse le talon au sol et pousse la hanche vers le mur. Change.",voice:"Exercice 11. Étirement des mollets. Appuie-toi contre un mur, une jambe tendue derrière, talon au sol. Change de jambe."},
+  {name:"Relaxation — respiration profonde",emoji:"😌",duration:60,desc:"Assis ou allongé, ferme les yeux. Inspire 4 secondes, retiens 4 secondes, expire 6 secondes. Répète.",voice:"Dernier exercice. Relaxation et respiration profonde. Ferme les yeux. Inspire 4 secondes, retiens, expire lentement. Tu as presque terminé."},
+];
+
+let stretchIdx=0;
+let stretchTimeLeft=0;
+let stretchTimer=null;
+let stretchPaused=false;
+let stretchTotalTime=0;
+let stretchMaxTotal=0;
+
+function initStretchPage(){
+  // afficher le programme
+  const list=document.getElementById('stretch-program-list');
+  if(list&&!list.children.length){
+    const isDark=document.body.classList.contains('dark-mode');
+    list.innerHTML=STRETCH_EXERCISES.map((ex,i)=>`
+      <div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid ${isDark?'#374151':'#f0f0f0'}${i===STRETCH_EXERCISES.length-1?';border-bottom:none':''}">
+        <div style="font-size:22px;width:32px;text-align:center">${ex.emoji}</div>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:600;color:${isDark?'#f3f4f6':'#1a1a2e'}">${ex.name}</div>
+          <div style="font-size:11px;color:#888">${ex.duration}s</div>
+        </div>
+        <div style="font-size:11px;color:#bbb">${Math.floor(ex.duration/60)?Math.floor(ex.duration/60)+'min ':''}${ex.duration%60?ex.duration%60+'s':''}</div>
+      </div>`).join('');
+  }
+}
+
+function startStretch(){
+  stretchIdx=0;
+  stretchPaused=false;
+  stretchTotalTime=0;
+  stretchMaxTotal=STRETCH_EXERCISES.reduce((a,e)=>a+e.duration,0);
+  document.getElementById('stretch-intro').style.display='none';
+  document.getElementById('stretch-done').style.display='none';
+  document.getElementById('stretch-session').style.display='block';
+  loadStretchExercise();
+}
+
+function loadStretchExercise(){
+  const ex=STRETCH_EXERCISES[stretchIdx];
+  stretchTimeLeft=ex.duration;
+  const isDark=document.body.classList.contains('dark-mode');
+
+  document.getElementById('stretch-emoji').textContent=ex.emoji;
+  document.getElementById('stretch-name').textContent=ex.name;
+  document.getElementById('stretch-desc').textContent=ex.desc;
+  document.getElementById('stretch-countdown').textContent=stretchTimeLeft;
+  document.getElementById('stretch-countdown').style.color='#1a56db';
+  document.getElementById('stretch-timer-arc').setAttribute('stroke','#1a56db');
+
+  // Prochain exercice
+  const next=STRETCH_EXERCISES[stretchIdx+1];
+  document.getElementById('stretch-next-label').textContent=next?`Prochain : ${next.emoji} ${next.name}`:'Dernier exercice !';
+
+  // progression globale
+  updateStretchProgress();
+
+  // Timer arc reset
+  document.getElementById('stretch-timer-arc').style.strokeDashoffset='0';
+
+  // Annonce vocale
+  speak(ex.voice);
+
+  // Démarrer le timer
+  clearInterval(stretchTimer);
+  stretchTimer=setInterval(tickStretch,1000);
+}
+
+function tickStretch(){
+  if(stretchPaused)return;
+  stretchTimeLeft--;
+  stretchTotalTime++;
+  updateStretchTimer();
+  updateStretchProgress();
+
+  // Alerte vocale à 10s
+  if(stretchTimeLeft===10) speak('10 secondes restantes.');
+  if(stretchTimeLeft===3) speak('3.');
+  if(stretchTimeLeft===2) speak('2.');
+  if(stretchTimeLeft===1) speak('1.');
+
+  if(stretchTimeLeft<=0){
+    clearInterval(stretchTimer);
+    stretchIdx++;
+    if(stretchIdx>=STRETCH_EXERCISES.length){
+      finishStretch();
+    } else {
+      speak('Changement !');
+      setTimeout(loadStretchExercise,1200);
+    }
+  }
+}
+
+function updateStretchTimer(){
+  const ex=STRETCH_EXERCISES[stretchIdx];
+  const pct=stretchTimeLeft/ex.duration;
+  const CIRC=408.4;
+  document.getElementById('stretch-timer-arc').style.strokeDashoffset=(1-pct)*CIRC;
+  document.getElementById('stretch-countdown').textContent=stretchTimeLeft;
+
+  // couleur selon urgence
+  const color=stretchTimeLeft<=10?'#e24b4a':stretchTimeLeft<=20?'#d97706':'#1a56db';
+  document.getElementById('stretch-countdown').style.color=color;
+  document.getElementById('stretch-timer-arc').setAttribute('stroke',color);
+}
+
+function updateStretchProgress(){
+  const total=stretchMaxTotal;
+  const done=stretchTotalTime;
+  const pct=Math.min(100,Math.round(done/total*100));
+  document.getElementById('stretch-progress-bar').style.width=pct+'%';
+  document.getElementById('stretch-progress-label').textContent=`Exercice ${stretchIdx+1} / ${STRETCH_EXERCISES.length}`;
+  // temps total restant
+  const remaining=total-done;
+  const m=Math.floor(remaining/60);
+  const s=remaining%60;
+  document.getElementById('stretch-time-total').textContent=`${m}:${s.toString().padStart(2,'0')}`;
+}
+
+function pauseStretch(){
+  stretchPaused=!stretchPaused;
+  const btn=document.getElementById('stretch-pause-btn');
+  if(stretchPaused){
+    btn.textContent='▶ Reprendre';
+    btn.style.background='#1a56db';
+    btn.style.color='#fff';
+    btn.style.border='none';
+    speak('Pause.');
+  } else {
+    btn.textContent='⏸ Pause';
+    btn.style.background='#fff';
+    btn.style.color='#333';
+    btn.style.border='1.5px solid #e0e0e0';
+    speak('On reprend !');
+  }
+}
+
+function skipStretch(){
+  clearInterval(stretchTimer);
+  stretchTotalTime+=stretchTimeLeft;
+  stretchIdx++;
+  if(stretchIdx>=STRETCH_EXERCISES.length){
+    finishStretch();
+  } else {
+    loadStretchExercise();
+  }
+}
+
+function stopStretch(){
+  if(!confirm('Arrêter la séance ?'))return;
+  clearInterval(stretchTimer);
+  window.speechSynthesis&&window.speechSynthesis.cancel();
+  resetStretch();
+}
+
+function finishStretch(){
+  clearInterval(stretchTimer);
+  window.speechSynthesis&&window.speechSynthesis.cancel();
+  document.getElementById('stretch-session').style.display='none';
+  document.getElementById('stretch-done').style.display='block';
+  speak('Félicitations ! Tu as terminé ta séance d\'étirements. Excellent travail !');
+}
+
+function resetStretch(){
+  clearInterval(stretchTimer);
+  stretchIdx=0;stretchTimeLeft=0;stretchTotalTime=0;stretchPaused=false;
+  document.getElementById('stretch-session').style.display='none';
+  document.getElementById('stretch-done').style.display='none';
+  document.getElementById('stretch-intro').style.display='block';
+}
+
+// Text-to-Speech
+function speak(text){
+  if(!window.speechSynthesis)return;
+  window.speechSynthesis.cancel();
+  const utt=new SpeechSynthesisUtterance(text);
+  utt.lang='fr-FR';
+  utt.rate=0.95;
+  utt.pitch=1;
+  utt.volume=1;
+  // choisir une voix française si dispo
+  const voices=window.speechSynthesis.getVoices();
+  const frVoice=voices.find(v=>v.lang.startsWith('fr'));
+  if(frVoice)utt.voice=frVoice;
+  window.speechSynthesis.speak(utt);
+}
+// précharger les voix (nécessaire sur certains navigateurs)
+if(window.speechSynthesis){
+  window.speechSynthesis.getVoices();
+  window.speechSynthesis.onvoiceschanged=()=>window.speechSynthesis.getVoices();
+}
 
 // ── INIT ─────────────────────────────────────────────────────────
 loadData();
