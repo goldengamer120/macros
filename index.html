@@ -2338,6 +2338,31 @@ function saveFood(){
 
 // ── NAV ──────────────────────────────────────────────────────────
 function removeFood(i){const log=getDayLog(currentDay);log.splice(i,1);saveDayLog(currentDay,log);render();}
+
+function updateFoodQty(k,i,newW){
+  const w=parseFloat(newW)||0;
+  if(w<=0)return;
+  const log=data[k]||[];
+  if(!log[i])return;
+  const entry=log[i];
+  // chercher l'aliment dans la BDD pour recalculer les macros
+  const db=getFullDB();
+  // le nom peut avoir "×2" etc, on cherche le nom de base
+  const baseName=entry.nm.replace(/ ×\d+$/,'');
+  const food=db.find(f=>entry.nm.startsWith(f.n)||f.n===baseName);
+  if(food){
+    // recalcul depuis les macros pour 100g
+    const r=w/100;
+    log[i]={...entry,w:Math.round(w),cal:Math.round(food.c*r),p:r1(food.p*r),l:r1(food.l*r),g:r1(food.g*r)};
+  } else {
+    // aliment manuel : on recalcule proportionnellement
+    const ratio=w/entry.w;
+    log[i]={...entry,w:Math.round(w),cal:Math.round(entry.cal*ratio),p:r1(entry.p*ratio),l:r1(entry.l*ratio),g:r1(entry.g*ratio)};
+  }
+  data[k]=log;
+  saveData();
+  render();
+}
 function changeWeek(d){weekOffset+=d;render();if(document.getElementById('page-stats').style.display!=='none')renderWeekPage();}
 function setDay(i){currentDay=i;render();}
 function changeMonth(d){monthOffset+=d;renderMonthPage();}
@@ -2529,18 +2554,23 @@ function render(){
   document.getElementById('bg').style.width=pct(tot.g,G.g);
   const ll=document.getElementById('log-list');
   if(!log.length){ll.innerHTML='<div class="empty">Aucun aliment pour cette journée</div>';buildCopyDaySelect();return;}
+  const isDark=document.body.classList.contains('dark-mode');
   ll.innerHTML=log.map((f,i)=>`
-    <div class="log-row" style="border-bottom:1px solid #f4f4f4">
+    <div class="log-row" style="border-bottom:1px solid ${isDark?'#374151':'#f4f4f4'}">
       <div class="nm">${f.nm}</div>
       <div class="log-row-macros">
-        <span class="v" style="color:#888">${f.w}g</span>
-        <span style="color:#ddd">·</span>
+        <!-- quantité éditable -->
+        <input type="number" min="1" value="${f.w}"
+          onchange="updateFoodQty('${dayKey(weekOffset,currentDay)}',${i},this.value)"
+          style="width:58px;font-size:12px;font-weight:600;color:${isDark?'#9ca3af':'#888'};background:${isDark?'#1f2937':'#f9f9f9'};border:1px solid ${isDark?'#374151':'#e0e0e0'};border-radius:6px;padding:3px 6px;outline:none;text-align:center">
+        <span style="font-size:11px;color:${isDark?'#6b7280':'#bbb'}">g</span>
+        <span style="color:${isDark?'#4b5563':'#ddd'}">·</span>
         <span class="v" style="color:#c0392b">${f.cal} kcal</span>
-        <span style="color:#ddd">·</span>
+        <span style="color:${isDark?'#4b5563':'#ddd'}">·</span>
         <span class="v" style="color:#1a56db">P ${f.p}g</span>
-        <span style="color:#ddd">·</span>
+        <span style="color:${isDark?'#4b5563':'#ddd'}">·</span>
         <span class="v" style="color:#d97706">L ${f.l}g</span>
-        <span style="color:#ddd">·</span>
+        <span style="color:${isDark?'#4b5563':'#ddd'}">·</span>
         <span class="v" style="color:#16a34a">G ${f.g}g</span>
         <button class="del-btn" onclick="removeFood(${i})" style="margin-left:auto">✕</button>
       </div>
