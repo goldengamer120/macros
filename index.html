@@ -602,9 +602,9 @@ body.dark-mode .dark-mode-row span{color:#F2EFE6}
 <div class="main-tabs">
   <button class="main-tab active" onclick="showPage('journal')" id="ptab-journal">📅 Jour</button>
   <button class="main-tab" onclick="showPage('stats')" id="ptab-stats">📊 Statistiques</button>
-  <button class="main-tab" onclick="showPage('aliments')" id="ptab-aliments">🥦 Aliments</button>
   <button class="main-tab" onclick="showPage('objectifs')" id="ptab-objectifs">🎯 Objectifs</button>
   <button class="main-tab" onclick="showPage('etirements')" id="ptab-etirements">🧘 Étirements</button>
+  <button class="main-tab" onclick="showPage('aliments')" id="ptab-aliments">🥦 Aliments</button>
 </div>
 
 <!-- ══════════════════════════════════════════════ PAGE JOURNAL -->
@@ -634,7 +634,7 @@ body.dark-mode .dark-mode-row span{color:#F2EFE6}
       <div class="filter-row" id="cat-filters"></div>
       <div class="input-row">
         <div class="srch-wrap">
-          <input type="text" id="fsearch" placeholder="Rechercher parmi 350+ aliments..." autocomplete="off" oninput="onSearch(this.value)">
+          <input type="text" id="fsearch" placeholder="Rechercher parmi 700+ aliments..." autocomplete="off" oninput="onSearch(this.value)">
           <div class="ac" id="ac" style="display:none"></div>
         </div>
         <div class="weight-wrap" id="weight-wrap">
@@ -1183,7 +1183,7 @@ body.dark-mode .dark-mode-row span{color:#F2EFE6}
 
 <script>
 // ═══════════════════════════════════════════════════════════════════
-// BASE DB (350+ aliments, macros pour 100g sauf si dw défini)
+// BASE DB (700+ aliments, macros pour 100g sauf si dw défini)
 // ═══════════════════════════════════════════════════════════════════
 const BASE_DB=[
   // VIANDES BŒUF
@@ -1293,6 +1293,13 @@ const BASE_DB=[
   {n:"Jaune d'œuf",cat:"Œufs",c:322,p:16,l:27,g:3.6,dw:18,unit:"jaune"},
   {n:"Œuf de caille",cat:"Œufs",c:158,p:13,l:11,g:0.4,dw:11,unit:"œuf"},
   {n:"Œuf dur",cat:"Œufs",c:155,p:13,l:11,g:1.1,dw:55,unit:"œuf"},
+  {n:"Œufs brouillés",cat:"Œufs",c:168,p:12,l:12,g:1.5},
+  {n:"Omelette nature",cat:"Œufs",c:164,p:11,l:12,g:1},
+  {n:"Omelette au fromage",cat:"Œufs",c:230,p:14,l:18,g:1.5},
+  {n:"Œuf au plat",cat:"Œufs",c:196,p:14,l:15,g:0.5,dw:60,unit:"œuf"},
+  {n:"Œuf poché",cat:"Œufs",c:143,p:12.5,l:9.5,g:0.7,dw:55,unit:"œuf"},
+  {n:"Œuf mollet",cat:"Œufs",c:150,p:12.5,l:10.5,g:1,dw:55,unit:"œuf"},
+  {n:"Œufs au bacon",cat:"Œufs",c:220,p:16,l:17,g:1},
   // LAITIERS
   {n:"Lait entier",cat:"Laitiers",c:61,p:3.2,l:3.3,g:4.7},
   {n:"Lait demi-écrémé",cat:"Laitiers",c:46,p:3.2,l:1.6,g:4.8},
@@ -1332,6 +1339,13 @@ const BASE_DB=[
   {n:"Barre protéinée générique",cat:"Sport",c:200,p:20,l:8,g:18,dw:55,unit:"barre"},
   {n:"Gaineur (mass gainer)",cat:"Sport",c:385,p:30,l:5,g:60},
   {n:"BCAA poudre",cat:"Sport",c:20,p:5,l:0,g:0},
+  {n:"Créatine monohydrate (dose)",cat:"Sport",c:0,p:0,l:0,g:0,dw:5,unit:"dose"},
+  {n:"Boisson isotonique (500ml)",cat:"Sport",c:26,p:0,l:0,g:6.5,dw:500,unit:"bouteille"},
+  {n:"Gel énergétique",cat:"Sport",c:107,p:0,l:0,g:27,dw:40,unit:"gel"},
+  {n:"Skyr protéiné nature",cat:"Sport",c:63,p:11,l:0.2,g:4},
+  {n:"Beurre de cacahuète protéiné",cat:"Sport",c:520,p:32,l:38,g:12},
+  {n:"Barre énergétique fruits secs",cat:"Sport",c:380,p:6,l:12,g:62,dw:45,unit:"barre"},
+  {n:"Pré-workout (dose)",cat:"Sport",c:5,p:0,l:0,g:1,dw:10,unit:"dose"},
   // CÉRÉALES
   {n:"Riz blanc (cuit)",cat:"Céréales",c:130,p:2.7,l:0.3,g:28.2},
   {n:"Riz complet (cuit)",cat:"Céréales",c:111,p:2.6,l:0.9,g:23},
@@ -1373,6 +1387,9 @@ const BASE_DB=[
   {n:"Edamame (cuits)",cat:"Légumineuses",c:121,p:11,l:5.2,g:8.9},
   {n:"Tempeh",cat:"Légumineuses",c:193,p:20,l:11,g:9},
   {n:"Haricots noirs (cuits)",cat:"Légumineuses",c:132,p:8.9,l:0.5,g:24},
+  {n:"Houmous",cat:"Légumineuses",c:250,p:7,l:15,g:20},
+  {n:"Falafels (pièce)",cat:"Légumineuses",c:333,p:13,l:18,g:32,dw:20,unit:"pièce"},
+  {n:"Haricots flageolets (cuits)",cat:"Légumineuses",c:100,p:7,l:0.5,g:17},
   // LÉGUMES
   {n:"Brocoli (cuit)",cat:"Légumes",c:35,p:2.4,l:0.4,g:7.2},
   {n:"Brocoli cru",cat:"Légumes",c:34,p:2.8,l:0.4,g:7},
@@ -1568,6 +1585,10 @@ const BASE_DB=[
   {n:"Pizza calzone (part)",cat:"Pizza",c:340,p:15,l:14,g:40,dw:140,unit:"part"},
   {n:"Pizza végétarienne (part)",cat:"Pizza",c:240,p:10,l:9,g:33,dw:115,unit:"part"},
   {n:"Pizza pâte fine entière",cat:"Pizza",c:800,p:35,l:28,g:96,dw:300,unit:"pizza"},
+  {n:"Pizza jambon champignons (part)",cat:"Pizza",c:255,p:12,l:9,g:32,dw:120,unit:"part"},
+  {n:"Pizza chèvre miel (part)",cat:"Pizza",c:285,p:11,l:12,g:33,dw:120,unit:"part"},
+  {n:"Pizza chorizo (part)",cat:"Pizza",c:300,p:13,l:14,g:32,dw:120,unit:"part"},
+  {n:"Pizza thon (part)",cat:"Pizza",c:250,p:14,l:8,g:32,dw:120,unit:"part"},
   // KEBAB
   {n:"Kebab viande (sandwich)",cat:"Kebab",c:520,p:32,l:22,g:50,dw:400,unit:"kebab"},
   {n:"Kebab poulet (sandwich)",cat:"Kebab",c:460,p:30,l:16,g:50,dw:380,unit:"kebab"},
@@ -1576,6 +1597,10 @@ const BASE_DB=[
   {n:"Kebab assiette poulet",cat:"Kebab",c:580,p:42,l:24,g:45,dw:480,unit:"assiette"},
   {n:"Frites kebab (portion)",cat:"Kebab",c:310,p:4,l:14,g:42,dw:150,unit:"portion"},
   {n:"Salade kebab",cat:"Kebab",c:80,p:3,l:4,g:9,dw:150,unit:"salade"},
+  {n:"Durum (galette)",cat:"Kebab",c:230,p:10,l:9,g:27,dw:350,unit:"durum"},
+  {n:"Kebab galette poulet",cat:"Kebab",c:215,p:12,l:7,g:26,dw:350,unit:"galette"},
+  {n:"Assiette mixte kebab",cat:"Kebab",c:610,p:43,l:27,g:45,dw:500,unit:"assiette"},
+  {n:"Kebab sans pain (viande + salade)",cat:"Kebab",c:180,p:22,l:9,g:3,dw:300,unit:"portion"},
   // SUSHI
   {n:"Sushi maki (pièce)",cat:"Sushi",c:35,p:1.5,l:0.5,g:7,dw:18,unit:"pièce"},
   {n:"Sushi nigiri saumon (pièce)",cat:"Sushi",c:50,p:4,l:1.5,g:6,dw:30,unit:"pièce"},
@@ -1584,6 +1609,13 @@ const BASE_DB=[
   {n:"Temaki (cône)",cat:"Sushi",c:100,p:5,l:2,g:16,dw:80,unit:"cône"},
   {n:"Gyoza (pièce)",cat:"Sushi",c:65,p:3,l:3,g:7,dw:30,unit:"pièce"},
   {n:"Edamame (portion)",cat:"Sushi",c:121,p:11,l:5.2,g:8.9,dw:150,unit:"portion"},
+  {n:"California roll avocat (pièce)",cat:"Sushi",c:48,p:1.8,l:1.6,g:6.8,dw:25,unit:"pièce"},
+  {n:"Sushi nigiri crevette (pièce)",cat:"Sushi",c:42,p:4,l:0.4,g:6,dw:28,unit:"pièce"},
+  {n:"Sushi nigiri anguille (pièce)",cat:"Sushi",c:65,p:4,l:2.5,g:7,dw:30,unit:"pièce"},
+  {n:"Sashimi saumon (pièce)",cat:"Sushi",c:60,p:6.5,l:3.8,g:0,dw:15,unit:"pièce"},
+  {n:"Sashimi thon (pièce)",cat:"Sushi",c:45,p:9,l:0.8,g:0,dw:15,unit:"pièce"},
+  {n:"Maki concombre (pièce)",cat:"Sushi",c:28,p:0.8,l:0.1,g:6,dw:18,unit:"pièce"},
+  {n:"Poke bowl saumon",cat:"Sushi",c:155,p:11,l:5,g:16,dw:400,unit:"bowl"},
   // AUTRES FAST FOOD
   {n:"Hot dog",cat:"Fast food",c:310,p:12,l:18,g:27,dw:130,unit:"hot dog"},
   {n:"Croque-monsieur",cat:"Fast food",c:380,p:18,l:18,g:34,dw:200,unit:"croque"},
@@ -1593,6 +1625,13 @@ const BASE_DB=[
   {n:"Burger végétarien",cat:"Fast food",c:450,p:20,l:18,g:48,dw:220,unit:"burger"},
   {n:"Tacos (grand)",cat:"Fast food",c:680,p:35,l:28,g:72,dw:380,unit:"tacos"},
   {n:"Shawarma (sandwich)",cat:"Fast food",c:500,p:30,l:20,g:50,dw:380,unit:"sandwich"},
+  {n:"Nuggets de poulet (6 pièces)",cat:"Fast food",c:270,p:15,l:17,g:15,dw:108,unit:"6 pièces"},
+  {n:"Hamburger maison",cat:"Fast food",c:250,p:14,l:10,g:26,dw:150,unit:"burger"},
+  {n:"Cheeseburger maison",cat:"Fast food",c:295,p:16,l:14,g:26,dw:165,unit:"burger"},
+  {n:"Wrap poulet crudités",cat:"Fast food",c:190,p:12,l:7,g:20,dw:220,unit:"wrap"},
+  {n:"Bagel jambon fromage",cat:"Fast food",c:265,p:14,l:9,g:33,dw:180,unit:"bagel"},
+  {n:"Onion rings (portion)",cat:"Fast food",c:320,p:4,l:18,g:35,dw:100,unit:"portion"},
+  {n:"Frites maison",cat:"Fast food",c:280,p:3.5,l:12,g:38},
   // SNACKS
   {n:"Chocolat noir 70% (carré)",cat:"Snacks",c:598,p:7.8,l:42.6,g:45.9,dw:10,unit:"carré"},
   {n:"Chocolat noir 85%",cat:"Snacks",c:598,p:9,l:45,g:37},
@@ -1606,6 +1645,13 @@ const BASE_DB=[
   {n:"Miel",cat:"Snacks",c:304,p:0.3,l:0,g:82},
   {n:"Confiture",cat:"Snacks",c:250,p:0.4,l:0.1,g:65},
   {n:"Popcorn nature",cat:"Snacks",c:382,p:11,l:14,g:73},
+  {n:"Fruits secs mélangés",cat:"Snacks",c:520,p:15,l:38,g:35},
+  {n:"Barre Mars",cat:"Snacks",c:449,p:4,l:17,g:70,dw:51,unit:"barre"},
+  {n:"Barre Twix",cat:"Snacks",c:495,p:5,l:24,g:64,dw:50,unit:"barre"},
+  {n:"Barre Snickers",cat:"Snacks",c:488,p:9,l:24,g:58,dw:50,unit:"barre"},
+  {n:"Barre KitKat",cat:"Snacks",c:518,p:6.5,l:27,g:60,dw:41.5,unit:"barre"},
+  {n:"Biscottes (2 tranches)",cat:"Snacks",c:408,p:10,l:6,g:75,dw:16,unit:"2 tranches"},
+  {n:"Galette de riz soufflé nature",cat:"Snacks",c:387,p:8,l:2.8,g:81,dw:9,unit:"galette"},
   // BOISSONS
   {n:"Eau",cat:"Boissons",c:0,p:0,l:0,g:0,dw:250,unit:"verre"},
   {n:"Café espresso",cat:"Boissons",c:2,p:0.1,l:0,g:0.4,dw:30,unit:"tasse"},
@@ -1872,6 +1918,40 @@ const BASE_DB=[
   {n:"Sirop de vanille (dose 20ml)",cat:"Sirops",c:58,p:0,l:0,g:14,dw:20,unit:"dose"},
   {n:"Sirop d'orgeat / amande (dose 20ml)",cat:"Sirops",c:64,p:0.3,l:0.6,g:15,dw:20,unit:"dose"},
   {n:"Sirop sans sucre (dose 20ml)",cat:"Sirops",c:1,p:0,l:0,g:0.2,dw:20,unit:"dose"},
+  // PLATS PRÉPARÉS
+  {n:"Couscous royal (poulet, merguez, agneau)",cat:"Plats préparés",c:165,p:11,l:7,g:15},
+  {n:"Cassoulet",cat:"Plats préparés",c:150,p:9,l:8,g:11},
+  {n:"Lasagnes bolognaise",cat:"Plats préparés",c:145,p:8,l:6.5,g:14},
+  {n:"Gratin dauphinois",cat:"Plats préparés",c:155,p:3.5,l:10,g:13},
+  {n:"Quiche lorraine (part)",cat:"Plats préparés",c:290,p:9,l:21,g:16,dw:150,unit:"part"},
+  {n:"Hachis parmentier",cat:"Plats préparés",c:130,p:7,l:6,g:12},
+  {n:"Chili con carne",cat:"Plats préparés",c:135,p:10,l:5,g:12},
+  {n:"Curry de poulet (avec riz)",cat:"Plats préparés",c:150,p:9,l:6,g:15},
+  {n:"Ratatouille",cat:"Plats préparés",c:65,p:1.5,l:3.5,g:7},
+  {n:"Paella",cat:"Plats préparés",c:160,p:9,l:5,g:20},
+  {n:"Risotto aux champignons",cat:"Plats préparés",c:165,p:4,l:5,g:26},
+  {n:"Moussaka",cat:"Plats préparés",c:150,p:8,l:9,g:9},
+  {n:"Pot-au-feu",cat:"Plats préparés",c:110,p:12,l:5,g:4},
+  {n:"Choucroute garnie",cat:"Plats préparés",c:180,p:10,l:12,g:6},
+  {n:"Tartiflette",cat:"Plats préparés",c:210,p:8,l:15,g:11},
+  {n:"Raclette (portion fromage+charcuterie)",cat:"Plats préparés",c:320,p:18,l:26,g:2,dw:200,unit:"portion"},
+  {n:"Chou farci",cat:"Plats préparés",c:130,p:9,l:6,g:9},
+  {n:"Gratin de pâtes au fromage",cat:"Plats préparés",c:175,p:7,l:8,g:19},
+  // CUISINE ASIATIQUE
+  {n:"Nouilles sautées au bœuf",cat:"Cuisine asiatique",c:150,p:8,l:5,g:19},
+  {n:"Riz cantonais",cat:"Cuisine asiatique",c:163,p:5,l:4,g:27},
+  {n:"Pad thaï au poulet",cat:"Cuisine asiatique",c:170,p:9,l:6,g:21},
+  {n:"Curry vert thaï au poulet",cat:"Cuisine asiatique",c:130,p:9,l:8,g:5},
+  {n:"Ramen porc (bol)",cat:"Cuisine asiatique",c:145,p:6.5,l:5,g:18.5,dw:600,unit:"bol"},
+  {n:"Nems (pièce)",cat:"Cuisine asiatique",c:70,p:2.5,l:4,g:7,dw:30,unit:"pièce"},
+  {n:"Rouleaux de printemps (pièce)",cat:"Cuisine asiatique",c:65,p:3,l:1,g:11,dw:45,unit:"pièce"},
+  {n:"Bo bun bœuf",cat:"Cuisine asiatique",c:120,p:8,l:3,g:15},
+  {n:"Bibimbap",cat:"Cuisine asiatique",c:140,p:6,l:4,g:20},
+  {n:"Wok légumes et poulet",cat:"Cuisine asiatique",c:120,p:10,l:4,g:11},
+  {n:"Riz gluant à la mangue",cat:"Cuisine asiatique",c:170,p:2.5,l:4,g:32},
+  {n:"Dim sum vapeur (pièce)",cat:"Cuisine asiatique",c:45,p:2,l:1.5,g:6,dw:25,unit:"pièce"},
+  {n:"Soupe miso",cat:"Cuisine asiatique",c:35,p:2.5,l:1.5,g:3},
+  {n:"Poulet General Tao",cat:"Cuisine asiatique",c:220,p:11,l:10,g:22},
 ];
 
 // ═══════════════════════════════════════════════
