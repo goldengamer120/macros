@@ -601,7 +601,6 @@ body.dark-mode .dark-mode-row span{color:#f3f4f6}
   <button class="main-tab" onclick="showPage('stats')" id="ptab-stats">📊 Statistiques</button>
   <button class="main-tab" onclick="showPage('aliments')" id="ptab-aliments">🥦 Aliments</button>
   <button class="main-tab" onclick="showPage('objectifs')" id="ptab-objectifs">🎯 Objectifs</button>
-  <button class="main-tab" onclick="showPage('entrainement')" id="ptab-entrainement">🏋️ Muscu</button>
   <button class="main-tab" onclick="showPage('etirements')" id="ptab-etirements">🧘 Étirements</button>
 </div>
 
@@ -986,34 +985,6 @@ body.dark-mode .dark-mode-row span{color:#f3f4f6}
         <div class="toggle-thumb"></div>
       </label>
     </div>
-  </div>
-</div>
-
-<!-- ══════════════════════════════════════════════ PAGE ENTRAÎNEMENT -->
-<div id="page-entrainement" style="display:none">
-  <div class="settings-box">
-    <h3>🏋️ Séance du jour</h3>
-    <div class="goal-grid" style="margin-bottom:16px">
-      <div class="goal-field">
-        <label>Séance</label>
-        <select id="tr-seance" onchange="onTrainingSeanceChange()" style="width:100%;padding:9px 14px;border:1.5px solid #e0e0e0;border-radius:9px;font-size:14px;outline:none;background:#fafafa"></select>
-      </div>
-      <div class="goal-field">
-        <label>Semaine du bloc</label>
-        <select id="tr-semaine" onchange="renderTrainingSession()" style="width:100%;padding:9px 14px;border:1.5px solid #e0e0e0;border-radius:9px;font-size:14px;outline:none;background:#fafafa">
-          <option value="1">Semaine 1</option>
-          <option value="2">Semaine 2</option>
-          <option value="3">Semaine 3</option>
-          <option value="4">Semaine 4</option>
-        </select>
-      </div>
-    </div>
-    <div id="tr-session-list"></div>
-  </div>
-
-  <div class="settings-box">
-    <h3>📜 Historique des séances</h3>
-    <div id="tr-history-list"><div style="font-size:13px;color:#bbb;padding:8px 0">Aucune séance enregistrée encore.</div></div>
   </div>
 </div>
 
@@ -1953,8 +1924,7 @@ function getCatKeys(){return [...new Set(getFullDB().map(f=>f.cat))];}
 function getStatePayload(){
   return JSON.stringify({
     data, goalsHistory, customFoods,
-    deletedBase:[...deletedBaseIds],
-    trainingLog
+    deletedBase:[...deletedBaseIds]
   });
 }
 function saveData(){
@@ -2018,14 +1988,13 @@ function pushEntry(name,w,food){
 
 // ── PAGES ────────────────────────────────────────────────────────
 function showPage(page){
-  ['journal','stats','aliments','objectifs','entrainement','etirements'].forEach(p=>{
+  ['journal','stats','aliments','objectifs','etirements'].forEach(p=>{
     document.getElementById('page-'+p).style.display=p===page?'block':'none';
     document.getElementById('ptab-'+p).classList.toggle('active',p===page);
   });
   if(page==='stats'){renderWeekPage();renderMonthPage();renderYearPage();}
   if(page==='aliments')renderDBTable();
   if(page==='objectifs')loadGoalsForm();
-  if(page==='entrainement')initTrainingPage();
   if(page==='etirements')initStretchPage();
 }
 
@@ -3526,22 +3495,12 @@ window._mergeRemoteData = function(remote) {
     const merged = [...new Set([...deletedBaseIds, ...remote.deletedBase])];
     deletedBaseIds = new Set(merged);
   }
-  // Merger trainingLog
-  if(remote.trainingLog && typeof remote.trainingLog === 'object') {
-    Object.entries(remote.trainingLog).forEach(([k, session]) => {
-      if(!trainingLog[k] || JSON.stringify(trainingLog[k]) !== JSON.stringify(session)) {
-        trainingLog[k] = session;
-        changed = true;
-      }
-    });
-  }
   if(changed) {
     // Sauvegarder en local aussi
     localStorage.setItem(LS_DATA, JSON.stringify(data));
     localStorage.setItem(LS_GOALS, JSON.stringify(goalsHistory));
     localStorage.setItem(LS_CUSTOM, JSON.stringify(customFoods));
     localStorage.setItem(LS_DELETED, JSON.stringify([...deletedBaseIds]));
-    localStorage.setItem(LS_TRAINING_LOG, JSON.stringify(trainingLog));
     render();
     showStatus('🔄 Sync reçue', 'ok');
     // mettre à jour le dot
@@ -3809,150 +3768,9 @@ if(window.speechSynthesis){
   window.speechSynthesis.onvoiceschanged=()=>window.speechSynthesis.getVoices();
 }
 
-// ── ENTRAÎNEMENT ─────────────────────────────────────────────────
-const TRAINING_PROGRAM = {"PEC/DOS 1": {"Developpé incliné haltères": [{"semaine": 1, "sets": 3, "reps": 9, "intensite": 6, "poids": 21.5, "detail": ""}, {"semaine": 2, "sets": 3, "reps": 8, "intensite": 9, "poids": 25.1, "detail": ""}, {"semaine": 3, "sets": 3, "reps": 8, "intensite": 9, "poids": 25.1, "detail": ""}, {"semaine": 4, "sets": 3, "reps": 8, "intensite": 9, "poids": 25.1, "detail": ""}], "Tractions pronation": [{"semaine": 1, "sets": 3, "reps": 8, "intensite": 6, "poids": 68.3, "detail": ""}, {"semaine": 2, "sets": 3, "reps": 8, "intensite": 9, "poids": 76.2, "detail": ""}, {"semaine": 3, "sets": 3, "reps": 8, "intensite": 9, "poids": 76.2, "detail": ""}, {"semaine": 4, "sets": 3, "reps": 8, "intensite": 9, "poids": 76.2, "detail": ""}], "Dips": [{"semaine": 1, "sets": 3, "reps": 8, "intensite": 6, "poids": 95.6, "detail": ""}, {"semaine": 2, "sets": 3, "reps": 8, "intensite": 9, "poids": 106.7, "detail": ""}, {"semaine": 3, "sets": 3, "reps": 8, "intensite": 9, "poids": 106.7, "detail": ""}, {"semaine": 4, "sets": 3, "reps": 8, "intensite": 9, "poids": 106.7, "detail": ""}], "Tirage horizontal (Poulie)": [{"semaine": 1, "sets": 3, "reps": 8, "intensite": 6, "poids": 47.8, "detail": ""}, {"semaine": 2, "sets": 3, "reps": 8, "intensite": 9, "poids": 53.3, "detail": ""}, {"semaine": 3, "sets": 3, "reps": 8, "intensite": 9, "poids": 53.3, "detail": ""}, {"semaine": 4, "sets": 3, "reps": 8, "intensite": 9, "poids": 53.3, "detail": ""}], "Tirage assis sur un banc avec Prise Haute (Poulie)": [{"semaine": 1, "sets": 3, "reps": 8, "intensite": 6, "poids": 47.8, "detail": ""}, {"semaine": 2, "sets": 3, "reps": 8, "intensite": 9, "poids": 53.3, "detail": ""}, {"semaine": 3, "sets": 3, "reps": 8, "intensite": 9, "poids": 53.3, "detail": ""}, {"semaine": 4, "sets": 3, "reps": 8, "intensite": 9, "poids": 53.3, "detail": ""}], "Tirage poulie triceps (Overhead)": [{"semaine": 1, "sets": 3, "reps": 8, "intensite": 6, "poids": 23.9, "detail": "Exercice pour les points faibles"}, {"semaine": 2, "sets": 3, "reps": 8, "intensite": 9, "poids": 26.7, "detail": ""}, {"semaine": 3, "sets": 3, "reps": 8, "intensite": 9, "poids": 26.7, "detail": ""}, {"semaine": 4, "sets": 3, "reps": 8, "intensite": 9, "poids": 26.7, "detail": ""}]}, "PEC/DOS 2": {"Developpé incliné haltères": [{"semaine": 1, "sets": 3, "reps": 9, "intensite": 6, "poids": 21.5, "detail": ""}, {"semaine": 2, "sets": 3, "reps": 8, "intensite": 9, "poids": 25.1, "detail": ""}, {"semaine": 3, "sets": 3, "reps": 8, "intensite": 9, "poids": 25.1, "detail": ""}, {"semaine": 4, "sets": 3, "reps": 8, "intensite": 9, "poids": 25.1, "detail": ""}], "Tractions pronation": [{"semaine": 1, "sets": 3, "reps": 8, "intensite": 6, "poids": 68.3, "detail": ""}, {"semaine": 2, "sets": 3, "reps": 8, "intensite": 9, "poids": 76.2, "detail": ""}, {"semaine": 3, "sets": 3, "reps": 8, "intensite": 9, "poids": 76.2, "detail": ""}, {"semaine": 4, "sets": 3, "reps": 8, "intensite": 9, "poids": 76.2, "detail": ""}], "Dips": [{"semaine": 1, "sets": 3, "reps": 8, "intensite": 6, "poids": 95.6, "detail": ""}, {"semaine": 2, "sets": 3, "reps": 8, "intensite": 9, "poids": 106.7, "detail": ""}, {"semaine": 3, "sets": 3, "reps": 8, "intensite": 9, "poids": 106.7, "detail": ""}, {"semaine": 4, "sets": 3, "reps": 8, "intensite": 9, "poids": 106.7, "detail": ""}], "Rowing": [{"semaine": 1, "sets": 3, "reps": 8, "intensite": 6, "poids": 53.9, "detail": ""}, {"semaine": 2, "sets": 3, "reps": 8, "intensite": 9, "poids": 60.2, "detail": ""}, {"semaine": 3, "sets": 3, "reps": 8, "intensite": 9, "poids": 60.2, "detail": ""}, {"semaine": 4, "sets": 3, "reps": 8, "intensite": 9, "poids": 60.2, "detail": ""}], "Tirage assis sur un banc avec Prise Haute (Poulie)": [{"semaine": 1, "sets": 3, "reps": 8, "intensite": 6, "poids": 47.8, "detail": ""}, {"semaine": 2, "sets": 3, "reps": 8, "intensite": 9, "poids": 53.3, "detail": ""}, {"semaine": 3, "sets": 3, "reps": 8, "intensite": 9, "poids": 53.3, "detail": ""}, {"semaine": 4, "sets": 3, "reps": 8, "intensite": 9, "poids": 53.3, "detail": ""}], "Tirage poulie triceps (Overhead)": [{"semaine": 1, "sets": 3, "reps": 8, "intensite": 6, "poids": 23.9, "detail": "Exercice pour les points faibles"}, {"semaine": 2, "sets": 3, "reps": 8, "intensite": 9, "poids": 26.7, "detail": ""}, {"semaine": 3, "sets": 3, "reps": 8, "intensite": 9, "poids": 26.7, "detail": ""}, {"semaine": 4, "sets": 3, "reps": 8, "intensite": 9, "poids": 26.7, "detail": ""}]}, "JAMBES": {"Squat": [{"semaine": 1, "sets": 3, "reps": 6, "intensite": 6, "poids": 66.4, "detail": ""}, {"semaine": 2, "sets": 3, "reps": 6, "intensite": 9, "poids": 73.0, "detail": ""}, {"semaine": 3, "sets": 3, "reps": 6, "intensite": 9, "poids": 73.0, "detail": ""}, {"semaine": 4, "sets": 3, "reps": 6, "intensite": 9, "poids": 73.0, "detail": ""}], "Deadlift": [{"semaine": 1, "sets": 3, "reps": 8, "intensite": 6, "poids": 88.7, "detail": ""}, {"semaine": 2, "sets": 3, "reps": 8, "intensite": 9, "poids": 99.1, "detail": ""}, {"semaine": 3, "sets": 3, "reps": 8, "intensite": 9, "poids": 99.1, "detail": ""}, {"semaine": 4, "sets": 3, "reps": 8, "intensite": 9, "poids": 99.1, "detail": ""}], "Legs extension": [{"semaine": 1, "sets": 3, "reps": 8, "intensite": 6, "poids": 58.0, "detail": ""}, {"semaine": 2, "sets": 3, "reps": 8, "intensite": 9, "poids": 64.8, "detail": ""}, {"semaine": 3, "sets": 3, "reps": 8, "intensite": 9, "poids": 64.8, "detail": ""}, {"semaine": 4, "sets": 3, "reps": 8, "intensite": 9, "poids": 64.8, "detail": ""}], "Leg curl ": [{"semaine": 1, "sets": 3, "reps": 8, "intensite": 6, "poids": 54.6, "detail": ""}, {"semaine": 2, "sets": 4, "reps": 8, "intensite": 9, "poids": 61.0, "detail": ""}, {"semaine": 3, "sets": 4, "reps": 8, "intensite": 9, "poids": 61.0, "detail": ""}, {"semaine": 4, "sets": 4, "reps": 8, "intensite": 9, "poids": 61.0, "detail": ""}]}, "EPAULE/BRAS": {"Dips": [{"semaine": 1, "sets": 3, "reps": 8, "intensite": 6, "poids": 95.6, "detail": ""}, {"semaine": 2, "sets": 3, "reps": 8, "intensite": 9, "poids": 106.7, "detail": ""}, {"semaine": 3, "sets": 3, "reps": 8, "intensite": 9, "poids": 106.7, "detail": ""}, {"semaine": 4, "sets": 3, "reps": 8, "intensite": 9, "poids": 106.7, "detail": ""}], "Tractions supination": [{"semaine": 1, "sets": 3, "reps": 8, "intensite": 6, "poids": 68.3, "detail": ""}, {"semaine": 2, "sets": 3, "reps": 8, "intensite": 9, "poids": 76.2, "detail": ""}, {"semaine": 3, "sets": 3, "reps": 8, "intensite": 9, "poids": 76.2, "detail": ""}, {"semaine": 4, "sets": 3, "reps": 8, "intensite": 9, "poids": 76.2, "detail": ""}], "Tirage poulie triceps (Overhead)": [{"semaine": 1, "sets": 3, "reps": 8, "intensite": 6, "poids": 23.9, "detail": ""}, {"semaine": 2, "sets": 3, "reps": 8, "intensite": 9, "poids": 26.7, "detail": ""}, {"semaine": 3, "sets": 3, "reps": 8, "intensite": 9, "poids": 26.7, "detail": ""}, {"semaine": 4, "sets": 3, "reps": 8, "intensite": 9, "poids": 26.7, "detail": ""}], "Curl a la poulie": [{"semaine": 1, "sets": 3, "reps": 8, "intensite": 6, "poids": 35.5, "detail": ""}, {"semaine": 2, "sets": 3, "reps": 8, "intensite": 9, "poids": 39.6, "detail": ""}, {"semaine": 3, "sets": 3, "reps": 8, "intensite": 9, "poids": 39.6, "detail": ""}, {"semaine": 4, "sets": 3, "reps": 8, "intensite": 9, "poids": 39.6, "detail": ""}], "Elévation latérale poulie basse avec poignée": [{"semaine": 1, "sets": 3, "reps": 8, "intensite": 6, "poids": 13.7, "detail": ""}, {"semaine": 2, "sets": 3, "reps": 8, "intensite": 9, "poids": 15.2, "detail": ""}, {"semaine": 3, "sets": 3, "reps": 8, "intensite": 9, "poids": 15.2, "detail": ""}, {"semaine": 4, "sets": 3, "reps": 8, "intensite": 9, "poids": 15.2, "detail": ""}]}};
-const LS_TRAINING_LOG='macros_training_log_v1';
-let trainingLog={}; // { 'YYYY-MM-DD': {seance, semaine, exos:[{nom,sets:[{reps,poids,done}]}]} }
-
-function loadTrainingLog(){
-  try{const r=localStorage.getItem(LS_TRAINING_LOG);if(r)trainingLog=JSON.parse(r);}catch(e){trainingLog={};}
-}
-function saveTrainingLog(){
-  localStorage.setItem(LS_TRAINING_LOG,JSON.stringify(trainingLog));
-  if(window.firebaseSave)window.firebaseSave(getStatePayload());
-}
-
-function initTrainingPage(){
-  const sel=document.getElementById('tr-seance');
-  if(sel.children.length===0){
-    const seances=Object.keys(TRAINING_PROGRAM);
-    sel.innerHTML=seances.map(s=>`<option value="${s}">${s}</option>`).join('');
-  }
-  renderTrainingSession();
-  renderTrainingHistory();
-}
-
-function onTrainingSeanceChange(){
-  renderTrainingSession();
-}
-
-function todayKey(){return new Date().toISOString().slice(0,10);}
-
-function renderTrainingSession(){
-  const seance=document.getElementById('tr-seance').value;
-  const semaine=parseInt(document.getElementById('tr-semaine').value);
-  const exos=TRAINING_PROGRAM[seance];
-  if(!exos)return;
-  const isDark=document.body.classList.contains('dark-mode');
-
-  const tKey=todayKey();
-  // récupérer la séance du jour si elle correspond déjà, sinon en créer une nouvelle structure de travail
-  if(!trainingLog[tKey]||trainingLog[tKey].seance!==seance||trainingLog[tKey].semaine!==semaine){
-    const exoList=Object.entries(exos).map(([nom,weeks])=>{
-      const w=weeks.find(x=>x.semaine===semaine)||weeks[0];
-      return {
-        nom, sets:Array.from({length:w.sets},()=>({reps:w.reps,poids:w.poids,done:false})),
-        intensite:w.intensite, detail:w.detail
-      };
-    });
-    trainingLog[tKey]={seance,semaine,exos:exoList,completed:false};
-  }
-
-  const session=trainingLog[tKey];
-  const list=document.getElementById('tr-session-list');
-  list.innerHTML=session.exos.map((exo,ei)=>`
-    <div style="background:${isDark?'#111827':'#f9f9fb'};border:1px solid ${isDark?'#374151':'#eee'};border-radius:10px;padding:12px 14px;margin-bottom:10px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <div style="font-size:14px;font-weight:700;color:${isDark?'#f3f4f6':'#1a1a2e'}">${exo.nom}</div>
-        <div style="font-size:11px;color:#888">RPE ${exo.intensite}</div>
-      </div>
-      ${exo.detail?`<div style="font-size:11px;color:#d97706;margin-bottom:8px">💡 ${exo.detail}</div>`:''}
-      <div style="display:flex;flex-direction:column;gap:6px">
-        ${exo.sets.map((s,si)=>`
-          <div style="display:flex;align-items:center;gap:8px;background:${isDark?'#1f2937':'#fff'};border-radius:8px;padding:7px 10px;border:1px solid ${isDark?'#374151':'#eee'}">
-            <div style="font-size:11px;color:#888;width:46px;flex-shrink:0">Série ${si+1}</div>
-            <input type="number" value="${s.reps}" min="0" onchange="updateTrainingSet('${ei}','${si}','reps',this.value)"
-              style="width:48px;font-size:12px;text-align:center;padding:4px;border:1px solid ${isDark?'#374151':'#e0e0e0'};border-radius:6px;background:${isDark?'#111827':'#fafafa'};color:${isDark?'#f3f4f6':'#333'}">
-            <span style="font-size:11px;color:#aaa">reps ×</span>
-            <input type="number" value="${s.poids}" min="0" step="0.5" onchange="updateTrainingSet('${ei}','${si}','poids',this.value)"
-              style="width:60px;font-size:12px;text-align:center;padding:4px;border:1px solid ${isDark?'#374151':'#e0e0e0'};border-radius:6px;background:${isDark?'#111827':'#fafafa'};color:${isDark?'#f3f4f6':'#333'}">
-            <span style="font-size:11px;color:#aaa">kg</span>
-            <button onclick="toggleTrainingSet('${ei}','${si}')" style="margin-left:auto;width:28px;height:28px;border-radius:6px;border:none;background:${s.done?'#3B6D11':(isDark?'#374151':'#f0f0f0')};color:${s.done?'#fff':'#aaa'};cursor:pointer;font-size:14px">${s.done?'✓':''}</button>
-          </div>`).join('')}
-      </div>
-    </div>`).join('');
-
-  // bouton terminer
-  let doneBtn=document.getElementById('tr-finish-btn');
-  if(!doneBtn){
-    doneBtn=document.createElement('button');
-    doneBtn.id='tr-finish-btn';
-    doneBtn.style.cssText='width:100%;padding:13px;border-radius:10px;border:none;background:#1a56db;color:#fff;font-size:14px;font-weight:700;cursor:pointer;margin-top:6px';
-    list.parentElement.appendChild(doneBtn);
-  }
-  doneBtn.textContent=session.completed?'✓ Séance enregistrée — Modifier':'💾 Terminer la séance';
-  doneBtn.onclick=finishTrainingSession;
-}
-
-function updateTrainingSet(ei,si,field,val){
-  const tKey=todayKey();
-  const session=trainingLog[tKey];
-  if(!session)return;
-  const v=parseFloat(val)||0;
-  session.exos[ei].sets[si][field]=v;
-  saveTrainingLog();
-}
-
-function toggleTrainingSet(ei,si){
-  const tKey=todayKey();
-  const session=trainingLog[tKey];
-  if(!session)return;
-  session.exos[ei].sets[si].done=!session.exos[ei].sets[si].done;
-  saveTrainingLog();
-  renderTrainingSession();
-}
-
-function finishTrainingSession(){
-  const tKey=todayKey();
-  const session=trainingLog[tKey];
-  if(!session)return;
-  session.completed=true;
-  saveTrainingLog();
-  renderTrainingHistory();
-  showStatus('Séance enregistrée ✓','ok');
-  renderTrainingSession();
-}
-
-function renderTrainingHistory(){
-  const el=document.getElementById('tr-history-list');
-  if(!el)return;
-  const isDark=document.body.classList.contains('dark-mode');
-  const entries=Object.entries(trainingLog)
-    .filter(([k,s])=>s.completed)
-    .sort((a,b)=>b[0].localeCompare(a[0]))
-    .slice(0,20);
-  if(!entries.length){
-    el.innerHTML='<div style="font-size:13px;color:#bbb;padding:8px 0">Aucune séance enregistrée encore.</div>';
-    return;
-  }
-  el.innerHTML=entries.map(([k,s])=>{
-    const d=new Date(k+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'});
-    const totalSets=s.exos.reduce((a,e)=>a+e.sets.length,0);
-    const doneSets=s.exos.reduce((a,e)=>a+e.sets.filter(x=>x.done).length,0);
-    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:${isDark?'#111827':'#f9f9fb'};border-radius:8px;margin-bottom:6px;border:1px solid ${isDark?'#374151':'#eee'}">
-      <div>
-        <div style="font-size:13px;font-weight:600;color:${isDark?'#f3f4f6':'#1a1a2e'}">${d} — ${s.seance} (S${s.semaine})</div>
-        <div style="font-size:11px;color:#888;margin-top:2px">${doneSets}/${totalSets} séries complétées · ${s.exos.length} exercices</div>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-
 // ── INIT ─────────────────────────────────────────────────────────
 loadData();
 loadDarkMode();
-loadTrainingLog();
 if(window.updateGeminiAccessUI) window.updateGeminiAccessUI();
 currentDay=new Date().getDay()===0?6:new Date().getDay()-1;
 buildCatFilters();renderWeightInput();initVoice();render();
