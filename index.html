@@ -620,7 +620,7 @@ body.dark-mode .dark-mode-row span{color:#F2EFE6}
 <body>
 
 <h1>Suivi <span>Macros</span></h1>
-<p class="subtitle">Suivi nutritionnel quotidien</p>
+<p class="subtitle">Suivi nutritionnel quotidien <span id="app-version-badge" style="opacity:.6;font-weight:600"></span></p>
 
 <!-- AUTH BANNER -->
 <div class="auth-banner" id="auth-banner">
@@ -1020,6 +1020,11 @@ body.dark-mode .dark-mode-row span{color:#F2EFE6}
       <div class="section-label" style="margin-bottom:12px">Couleur d'accent</div>
       <div id="theme-picker" style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px"></div>
     </div>
+  </div>
+
+  <div class="settings-box">
+    <h3>À propos</h3>
+    <div id="changelog-list"></div>
   </div>
 </div>
 
@@ -3613,6 +3618,7 @@ function toggleDarkMode(){
   document.body.classList.toggle('dark-mode',on);
   localStorage.setItem(LS_DARK,on?'1':'0');
   renderThemePicker();
+  renderVersionInfo();
 }
 function loadDarkMode(){
   const on=localStorage.getItem(LS_DARK)==='1';
@@ -3656,6 +3662,37 @@ function renderThemePicker(activeKey){
       <span style="width:26px;height:26px;border-radius:50%;background:${t.accent};display:flex;align-items:center;justify-content:center;color:${t.textOn};font-size:13px">${key===active?'✓':''}</span>
       <span style="font-size:11px;font-weight:600;color:${isDark?'#A79E8C':'#5C5440'}">${t.label}</span>
     </button>`).join('');
+}
+
+// ── VERSION / CHANGELOG ──────────────────────────────────────────
+const APP_VERSION='1.0.0';
+const CHANGELOG=[
+  {version:'1.0.0',date:'2026-07-30',changes:[
+    "Mise en place du suivi de version",
+    "Base alimentaire élargie à 1000 aliments (bonbons, fast-foods, cuisine asiatique, poissons, sauces...)",
+    "Correction de plusieurs erreurs de données nutritionnelles (sirops, barre protéinée, Oreo, popcorn)",
+    "Correction des échelles des graphiques (graduations arrondies)",
+    "Refonte graphique complète : thème sombre et doré, sélecteur de 5 couleurs d'accent",
+    "Interface épurée : icônes SVG, typographie Inter, suppression des émojis décoratifs",
+    "Fond neutralisé (suppression de la teinte jaunâtre)"
+  ]},
+];
+function renderVersionInfo(){
+  const badge=document.getElementById('app-version-badge');
+  if(badge)badge.textContent='v'+APP_VERSION;
+  const list=document.getElementById('changelog-list');
+  if(!list)return;
+  const isDark=document.body.classList.contains('dark-mode');
+  list.innerHTML=CHANGELOG.map(entry=>`
+    <div style="margin-bottom:14px">
+      <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:6px">
+        <span style="font-size:13px;font-weight:700;color:${isDark?'#F2EFE6':'#221D14'}">v${entry.version}</span>
+        <span style="font-size:11px;color:${isDark?'#8A8066':'#A89F8C'}">${entry.date}</span>
+      </div>
+      <ul style="margin:0;padding-left:18px;font-size:12.5px;color:${isDark?'#A79E8C':'#5C5440'};line-height:1.7">
+        ${entry.changes.map(c=>`<li>${c}</li>`).join('')}
+      </ul>
+    </div>`).join('');
 }
 
 // ── PHOTO / GEMINI ───────────────────────────────────────────────
@@ -4202,6 +4239,7 @@ if(window.speechSynthesis){
 loadData();
 loadDarkMode();
 loadAccentTheme();
+renderVersionInfo();
 if(window.updateGeminiAccessUI) window.updateGeminiAccessUI();
 currentDay=new Date().getDay()===0?6:new Date().getDay()-1;
 buildCatFilters();renderWeightInput();initVoice();render();
