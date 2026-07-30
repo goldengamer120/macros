@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Macros">
-<meta name="theme-color" content="#C9A227">
+<meta name="theme-color" content="var(--accent)">
 <title>Suivi Macros</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -150,13 +150,38 @@ window.updateGeminiAccessUI = function() {
 <script>
 // Applique le mode sombre IMMÉDIATEMENT avant le rendu pour éviter le flash blanc
 (function(){if(localStorage.getItem('macros_dark_mode')==='1')document.documentElement.classList.add('dark-mode-early');})();
+// Applique le thème de couleur IMMÉDIATEMENT avant le rendu pour éviter le flash doré
+(function(){
+  const THEMES_EARLY={
+    gold:{accent:'#C9A227',textOn:'#1A1608'},
+    emerald:{accent:'#2E9A66',textOn:'#FFFFFF'},
+    sapphire:{accent:'#3E7CB8',textOn:'#FFFFFF'},
+    amethyst:{accent:'#7C5FC4',textOn:'#FFFFFF'},
+    silver:{accent:'#9C8F72',textOn:'#1A1608'}
+  };
+  const saved=localStorage.getItem('macros_accent_theme');
+  const t=THEMES_EARLY[saved];
+  if(t){
+    const s=document.documentElement.style;
+    s.setProperty('--accent',t.accent);
+    s.setProperty('--accent-text-on',t.textOn);
+  }
+})();
 </script>
 <style>
+:root{
+  --accent:#C9A227;
+  --accent-text-on:#1A1608;
+  --accent-hover:color-mix(in srgb, var(--accent) 78%, black);
+  --accent-soft-bg:color-mix(in srgb, var(--accent) 14%, white);
+  --accent-soft-border:color-mix(in srgb, var(--accent) 45%, white);
+  --accent-bright:color-mix(in srgb, var(--accent) 82%, white);
+}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;background:#F7F4EC;color:#221D14;padding:20px;min-height:100vh;-webkit-font-smoothing:antialiased}
 .val,.wval,.i-val,#tc,#tp,#tl,#tg,.log-row .v,.db-table td{font-variant-numeric:tabular-nums}
 h1{font-size:21px;font-weight:600;margin-bottom:2px;letter-spacing:-.01em}
-h1 span{color:#C9A227;font-weight:700}
+h1 span{color:var(--accent);font-weight:700}
 .subtitle{font-size:12.5px;color:#A89F8C;margin-bottom:18px;font-weight:500}
 .icon{width:16px;height:16px;flex-shrink:0}
 .icon-lg{width:20px;height:20px;flex-shrink:0}
@@ -165,21 +190,21 @@ h1 span{color:#C9A227;font-weight:700}
 .main-tabs{display:flex;gap:0;margin-bottom:20px;border:1px solid #DCD0B0;border-radius:12px;overflow:hidden;background:#F5F2E8}
 .main-tab{flex:1;padding:10px;font-size:12.5px;font-weight:600;cursor:pointer;border:none;background:transparent;color:#8C8371;transition:.15s;display:flex;align-items:center;justify-content:center;gap:6px}
 .main-tab:not(:last-child){border-right:1px solid #DCD0B0}
-.main-tab.active{background:#C9A227;color:#1A1608}
-.main-tab:hover:not(.active){background:#F7EFD9;color:#C9A227}
+.main-tab.active{background:var(--accent);color:var(--accent-text-on)}
+.main-tab:hover:not(.active){background:var(--accent-soft-bg);color:var(--accent)}
 
 /* WEEK NAV */
 .week-nav{display:flex;align-items:center;gap:12px;margin-bottom:16px}
 .week-nav span{flex:1;text-align:center;font-size:15px;font-weight:600}
 .week-nav button{padding:7px 16px;border-radius:8px;border:1px solid #DCD0B0;background:#fff;cursor:pointer;font-size:13px;font-weight:500;transition:.15s}
-.week-nav button:hover{background:#F7EFD9;border-color:#E3C87A}
+.week-nav button:hover{background:var(--accent-soft-bg);border-color:var(--accent-soft-border)}
 
 /* DAY TABS */
 .day-tabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
 .day-tab{padding:7px 14px;border-radius:8px;font-size:13px;cursor:pointer;border:1px solid #DCD0B0;background:#fff;color:#5C5440;white-space:nowrap;transition:.15s;font-weight:500}
-.day-tab:hover{background:#F7EFD9}
-.day-tab.active{background:#C9A227;border-color:#C9A227;color:#1A1608}
-.day-dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:#D9B54A;margin-left:5px;vertical-align:2px}
+.day-tab:hover{background:var(--accent-soft-bg)}
+.day-tab.active{background:var(--accent);border-color:var(--accent);color:var(--accent-text-on)}
+.day-dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--accent-bright);margin-left:5px;vertical-align:2px}
 .day-tab.active .day-dot{background:rgba(26,22,8,.35)}
 
 /* MACRO CARDS */
@@ -204,23 +229,23 @@ h1 span{color:#C9A227;font-weight:700}
 /* ADD BOX */
 .add-box{background:#fff;border:1px solid #EAE2D0;border-radius:14px;padding:18px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,.04)}
 .section-label{font-size:11px;font-weight:700;color:#A89F8C;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px}
-.stats-section-title{font-size:13px;font-weight:700;color:#221D14;text-transform:uppercase;letter-spacing:.06em;margin-bottom:16px;padding-bottom:9px;border-bottom:2px solid #C9A227;display:inline-block}
+.stats-section-title{font-size:13px;font-weight:700;color:#221D14;text-transform:uppercase;letter-spacing:.06em;margin-bottom:16px;padding-bottom:9px;border-bottom:2px solid var(--accent);display:inline-block}
 body.dark-mode .stats-section-title{color:#F2EFE6}
 .mode-tabs{display:flex;gap:0;margin-bottom:14px;border:1px solid #DCD0B0;border-radius:10px;overflow:hidden;background:#F5F2E8}
 .mode-tab{flex:1;padding:9px;font-size:13px;font-weight:600;cursor:pointer;border:none;background:transparent;color:#8C8371;transition:.15s;display:flex;align-items:center;justify-content:center;gap:5px}
 .mode-tab:not(:last-child){border-right:1px solid #DCD0B0}
-.mode-tab.active{background:#C9A227;color:#1A1608}
-.mode-tab:hover:not(.active){background:#F7EFD9;color:#C9A227}
+.mode-tab.active{background:var(--accent);color:var(--accent-text-on)}
+.mode-tab:hover:not(.active){background:var(--accent-soft-bg);color:var(--accent)}
 
 /* SEARCH */
 .filter-row{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
 .cat-btn{padding:4px 11px;font-size:12px;border-radius:20px;border:1px solid #DCD0B0;background:#fff;color:#5C5440;cursor:pointer;white-space:nowrap;transition:.15s;font-weight:500}
-.cat-btn:hover{background:#F7EFD9;border-color:#E3C87A}
-.cat-btn.active{background:#C9A227;color:#1A1608;border-color:#C9A227}
+.cat-btn:hover{background:var(--accent-soft-bg);border-color:var(--accent-soft-border)}
+.cat-btn.active{background:var(--accent);color:var(--accent-text-on);border-color:var(--accent)}
 .input-row{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center}
 .srch-wrap{position:relative}
 .srch-wrap input{width:100%;padding:9px 14px;border:1.5px solid #DCD0B0;border-radius:9px;font-size:14px;outline:none;transition:.15s;background:#FBF8F0}
-.srch-wrap input:focus{border-color:#C9A227;background:#fff}
+.srch-wrap input:focus{border-color:var(--accent);background:#fff}
 .ac{position:absolute;top:42px;left:0;right:0;background:#fff;border:1.5px solid #DCD0B0;border-radius:10px;z-index:999;max-height:300px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.12)}
 .ac-item{padding:10px 14px;font-size:13px;cursor:pointer;border-bottom:1px solid #F5F2E8;display:flex;align-items:center;gap:8px}
 .ac-item:last-child{border-bottom:none}
@@ -229,24 +254,24 @@ body.dark-mode .stats-section-title{color:#F2EFE6}
 .ac-item .ac-name{font-weight:600;margin-bottom:2px}
 .ac-item .ac-sub{font-size:11px;color:#A89F8C}
 .ac-item .ac-edit{padding:4px 8px;border-radius:6px;border:1px solid #DCD0B0;background:#fff;font-size:11px;color:#8C8371;cursor:pointer;white-space:nowrap}
-.ac-item .ac-edit:hover{background:#F7EFD9;color:#C9A227;border-color:#E3C87A}
+.ac-item .ac-edit:hover{background:var(--accent-soft-bg);color:var(--accent);border-color:var(--accent-soft-border)}
 .cat-tag{display:inline-block;font-size:10px;padding:2px 7px;border-radius:10px;background:#EEE7D6;color:#5C5440;font-weight:600;margin-right:4px}
-.dw-tag{display:inline-block;font-size:10px;padding:2px 7px;border-radius:10px;background:#F7EFD9;color:#C9A227;font-weight:600;margin-left:4px}
+.dw-tag{display:inline-block;font-size:10px;padding:2px 7px;border-radius:10px;background:var(--accent-soft-bg);color:var(--accent);font-weight:600;margin-left:4px}
 .weight-wrap{display:flex;align-items:center;gap:8px}
 .qty-ctrl{display:flex;align-items:center;gap:4px}
 .qty-btn{width:32px;height:32px;border-radius:8px;border:1.5px solid #DCD0B0;background:#fff;cursor:pointer;font-size:20px;color:#2E2818;display:flex;align-items:center;justify-content:center;transition:.15s}
-.qty-btn:hover{background:#F7EFD9;border-color:#E3C87A}
+.qty-btn:hover{background:var(--accent-soft-bg);border-color:var(--accent-soft-border)}
 .qty-val{font-size:16px;font-weight:700;min-width:24px;text-align:center}
-.unit-badge{font-size:12px;color:#4A4330;background:#F7EFD9;border-radius:20px;padding:4px 12px;white-space:nowrap;font-weight:500;border:1px solid #E3C87A}
+.unit-badge{font-size:12px;color:#4A4330;background:var(--accent-soft-bg);border-radius:20px;padding:4px 12px;white-space:nowrap;font-weight:500;border:1px solid var(--accent-soft-border)}
 .weight-input{padding:9px 14px;border:1.5px solid #DCD0B0;border-radius:9px;font-size:14px;width:115px;outline:none;transition:.15s;background:#FBF8F0}
-.weight-input:focus{border-color:#C9A227;background:#fff}
-.add-btn{padding:9px 18px;border-radius:9px;border:none;background:#C9A227;color:#1A1608;font-size:14px;cursor:pointer;white-space:nowrap;font-weight:600;transition:.15s}
-.add-btn:hover{background:#A9850E}
+.weight-input:focus{border-color:var(--accent);background:#fff}
+.add-btn{padding:9px 18px;border-radius:9px;border:none;background:var(--accent);color:var(--accent-text-on);font-size:14px;cursor:pointer;white-space:nowrap;font-weight:600;transition:.15s}
+.add-btn:hover{background:var(--accent-hover)}
 .preview{font-size:12px;color:#8C8371;margin-top:12px;min-height:18px;font-weight:500}
 
 /* VOICE */
 .voice-area{text-align:center;padding:8px 0 16px}
-.mic-btn{width:80px;height:80px;border-radius:50%;border:none;background:#C9A227;color:#1A1608;font-size:32px;cursor:pointer;transition:.2s;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(201,162,39,.3);margin-bottom:14px}
+.mic-btn{width:80px;height:80px;border-radius:50%;border:none;background:var(--accent);color:var(--accent-text-on);font-size:32px;cursor:pointer;transition:.2s;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(201,162,39,.3);margin-bottom:14px}
 .mic-btn:hover:not(.disabled){transform:scale(1.05)}
 .mic-btn.recording{background:#C1443B;animation:pulse 1.2s infinite}
 .mic-btn.disabled{background:#CCC3AE;cursor:not-allowed;box-shadow:none}
@@ -254,12 +279,12 @@ body.dark-mode .stats-section-title{color:#F2EFE6}
 .voice-status{font-size:14px;color:#8C8371;margin-bottom:12px;min-height:20px;font-weight:500}
 .voice-transcript{background:#F5F2E8;border:1px solid #EAE2D0;border-radius:10px;padding:12px 16px;font-size:14px;color:#2E2818;min-height:52px;margin-bottom:12px;font-style:italic;text-align:left;display:none;line-height:1.5}
 .no-speech-note{font-size:12px;color:#C1443B;background:#F5E3DC;padding:8px 12px;border-radius:8px;display:none;margin-bottom:10px}
-.claude-box{background:#F7EFD9;border:1.5px solid #E3C87A;border-radius:12px;padding:16px;margin-top:4px;display:none}
-.claude-box-title{font-size:13px;font-weight:700;color:#C9A227;margin-bottom:8px}
+.claude-box{background:var(--accent-soft-bg);border:1.5px solid var(--accent-soft-border);border-radius:12px;padding:16px;margin-top:4px;display:none}
+.claude-box-title{font-size:13px;font-weight:700;color:var(--accent);margin-bottom:8px}
 .claude-box-steps{font-size:13px;color:#3B3423;line-height:1.7;margin-bottom:12px}
-.claude-message-preview{background:#fff;border:1px solid #E3C87A;border-radius:8px;padding:10px 14px;font-size:12px;color:#4A4330;font-family:monospace;line-height:1.5;margin-bottom:10px;white-space:pre-wrap;word-break:break-word}
-.copy-btn{width:100%;padding:10px;border-radius:9px;border:none;background:#C9A227;color:#1A1608;font-size:14px;font-weight:600;cursor:pointer;transition:.15s;display:flex;align-items:center;justify-content:center;gap:8px}
-.copy-btn:hover{background:#A9850E}
+.claude-message-preview{background:#fff;border:1px solid var(--accent-soft-border);border-radius:8px;padding:10px 14px;font-size:12px;color:#4A4330;font-family:monospace;line-height:1.5;margin-bottom:10px;white-space:pre-wrap;word-break:break-word}
+.copy-btn{width:100%;padding:10px;border-radius:9px;border:none;background:var(--accent);color:var(--accent-text-on);font-size:14px;font-weight:600;cursor:pointer;transition:.15s;display:flex;align-items:center;justify-content:center;gap:8px}
+.copy-btn:hover{background:var(--accent-hover)}
 .copy-btn.copied{background:#6B9B4F}
 
 /* MANUAL */
@@ -267,12 +292,12 @@ body.dark-mode .stats-section-title{color:#F2EFE6}
 .manual-hdr span{font-size:10px;font-weight:700;color:#A89F8C;text-transform:uppercase;letter-spacing:.04em}
 .manual-entry-row{display:grid;grid-template-columns:1fr 85px 75px 65px 65px 65px auto;gap:6px;align-items:center;margin-bottom:8px}
 .manual-entry-row input{padding:7px 10px;border:1.5px solid #DCD0B0;border-radius:8px;font-size:13px;outline:none;width:100%;transition:.15s;background:#FBF8F0}
-.manual-entry-row input:focus{border-color:#C9A227;background:#fff}
+.manual-entry-row input:focus{border-color:var(--accent);background:#fff}
 .manual-entry-row input::placeholder{color:#BAB19C;font-size:12px}
-.add-manual-btn{padding:7px 12px;border-radius:8px;border:none;background:#C9A227;color:#1A1608;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
-.add-manual-btn:hover{background:#A9850E}
+.add-manual-btn{padding:7px 12px;border-radius:8px;border:none;background:var(--accent);color:var(--accent-text-on);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
+.add-manual-btn:hover{background:var(--accent-hover)}
 .add-row-btn{width:100%;padding:8px;border-radius:8px;border:2px dashed #DCD0B0;background:transparent;color:#A89F8C;font-size:13px;cursor:pointer;transition:.15s;margin-top:4px}
-.add-row-btn:hover{border-color:#E3C87A;color:#C9A227;background:#F7EFD9}
+.add-row-btn:hover{border-color:var(--accent-soft-border);color:var(--accent);background:var(--accent-soft-bg)}
 
 /* LOG */
 .log-wrap{background:#fff;border:1px solid #EAE2D0;border-radius:14px;overflow:hidden;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,.04)}
@@ -321,14 +346,14 @@ body.dark-mode .stat-tile .stat-num{color:#F2EFE6}
 .goal-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:16px}
 .goal-field label{display:block;font-size:12px;font-weight:600;color:#8C8371;margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em}
 .goal-field input{width:100%;padding:9px 14px;border:1.5px solid #DCD0B0;border-radius:9px;font-size:14px;outline:none;transition:.15s;background:#FBF8F0}
-.goal-field input:focus{border-color:#C9A227;background:#fff}
-.save-goals-btn{padding:10px 20px;border-radius:9px;border:none;background:#C9A227;color:#1A1608;font-size:14px;font-weight:600;cursor:pointer;transition:.15s}
-.save-goals-btn:hover{background:#A9850E}
+.goal-field input:focus{border-color:var(--accent);background:#fff}
+.save-goals-btn{padding:10px 20px;border-radius:9px;border:none;background:var(--accent);color:var(--accent-text-on);font-size:14px;font-weight:600;cursor:pointer;transition:.15s}
+.save-goals-btn:hover{background:var(--accent-hover)}
 
 /* DB EDITOR */
 .db-toolbar{display:flex;gap:10px;margin-bottom:14px;align-items:center;flex-wrap:wrap}
 .db-toolbar input{flex:1;min-width:150px;padding:8px 12px;border:1.5px solid #DCD0B0;border-radius:9px;font-size:13px;outline:none;background:#FBF8F0}
-.db-toolbar input:focus{border-color:#C9A227;background:#fff}
+.db-toolbar input:focus{border-color:var(--accent);background:#fff}
 .db-toolbar select{padding:8px 12px;border:1.5px solid #DCD0B0;border-radius:9px;font-size:13px;outline:none;background:#FBF8F0;cursor:pointer}
 .new-food-btn{padding:8px 16px;border-radius:9px;border:none;background:#6B9B4F;color:#fff;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;transition:.15s}
 .new-food-btn:hover{background:#557D3D}
@@ -338,7 +363,7 @@ body.dark-mode .stat-tile .stat-num{color:#F2EFE6}
 .db-table tr:hover td{background:#F5F2E8}
 .db-table tr:last-child td{border-bottom:none}
 .edit-food-btn{padding:5px;border-radius:6px;border:1px solid #DCD0B0;background:#fff;font-size:11px;color:#5C5440;cursor:pointer;transition:.15s;margin-right:4px;display:inline-flex;align-items:center;justify-content:center}
-.edit-food-btn:hover{background:#F7EFD9;color:#C9A227;border-color:#E3C87A}
+.edit-food-btn:hover{background:var(--accent-soft-bg);color:var(--accent);border-color:var(--accent-soft-border)}
 .del-food-btn{padding:5px;border-radius:6px;border:1px solid #F5E3DC;background:#fff;font-size:11px;color:#C1443B;cursor:pointer;transition:.15s;display:inline-flex;align-items:center;justify-content:center}
 .del-food-btn:hover{background:#F5E3DC}
 .custom-badge{display:inline-block;font-size:9px;padding:1px 5px;border-radius:6px;background:#E3EEDC;color:#4C7A3D;font-weight:700;margin-left:4px;vertical-align:2px}
@@ -352,11 +377,11 @@ body.dark-mode .stat-tile .stat-num{color:#F2EFE6}
 .modal-field{display:flex;flex-direction:column;gap:5px}
 .modal-field label{font-size:11px;font-weight:600;color:#8C8371;text-transform:uppercase;letter-spacing:.04em}
 .modal-field input,.modal-field select{padding:8px 12px;border:1.5px solid #DCD0B0;border-radius:8px;font-size:13px;outline:none;transition:.15s;background:#FBF8F0}
-.modal-field input:focus,.modal-field select:focus{border-color:#C9A227;background:#fff}
+.modal-field input:focus,.modal-field select:focus{border-color:var(--accent);background:#fff}
 .modal-field.full{grid-column:1/-1}
 .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:4px}
-.modal-save{padding:9px 20px;border-radius:9px;border:none;background:#C9A227;color:#1A1608;font-size:14px;font-weight:600;cursor:pointer}
-.modal-save:hover{background:#A9850E}
+.modal-save{padding:9px 20px;border-radius:9px;border:none;background:var(--accent);color:var(--accent-text-on);font-size:14px;font-weight:600;cursor:pointer}
+.modal-save:hover{background:var(--accent-hover)}
 .modal-cancel{padding:9px 16px;border-radius:9px;border:1px solid #DCD0B0;background:#fff;font-size:14px;font-weight:500;cursor:pointer;color:#5C5440}
 .modal-cancel:hover{background:#F5F2E8}
 .dw-toggle{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:13px;color:#4A4330}
@@ -367,8 +392,8 @@ body.dark-mode .stat-tile .stat-num{color:#F2EFE6}
 .auth-banner.connected{border-color:#4C6B3A;background:#E8EEDC}
 .auth-user{font-size:13px;font-weight:500;color:#4C6B3A;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .auth-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:9px;border:none;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;transition:.15s;min-height:40px}
-.login-btn{background:#C9A227;color:#1A1608}
-.login-btn:hover{background:#A9850E}
+.login-btn{background:var(--accent);color:var(--accent-text-on)}
+.login-btn:hover{background:var(--accent-hover)}
 .logout-btn{background:#fff;color:#C1443B;border:1px solid #F5E3DC}
 .logout-btn:hover{background:#F5E3DC}
 .sync-dot{width:8px;height:8px;border-radius:50%;background:#4C6B3A;flex-shrink:0}
@@ -383,14 +408,14 @@ body.dark-mode .logout-btn{background:#1E212B;border-color:#2B2F3B;color:#E2685C
 body.dark-mode,html.dark-mode-early body{background:#14161B;color:#F2EFE6}
 body.dark-mode .mc,body.dark-mode .add-box,body.dark-mode .log-wrap,body.dark-mode .chart-box,body.dark-mode .week-summary,body.dark-mode .settings-box,body.dark-mode .copy-day-box,body.dark-mode .auth-banner{background:#1E212B;border-color:#2B2F3B;box-shadow:0 1px 3px rgba(0,0,0,.4),0 0 0 1px rgba(201,162,39,.04)}
 body.dark-mode .modal{box-shadow:0 20px 60px rgba(0,0,0,.55)}
-body.dark-mode ::selection{background:#C9A227;color:#1A1608}
-::selection{background:#E3C87A;color:#1A1608}
+body.dark-mode ::selection{background:var(--accent);color:var(--accent-text-on)}
+::selection{background:var(--accent-soft-border);color:#1A1608}
 body.dark-mode .mc .lbl,body.dark-mode .mc .goal,body.dark-mode .legend-item,body.dark-mode .section-label{color:#A79E8C}
 body.dark-mode .bar-track{background:#2B2F3B}
 body.dark-mode .wstat{background:#14161B}
 body.dark-mode .wstat .wlbl,body.dark-mode .wstat .wsub{color:#8A8066}
 body.dark-mode .day-tab{background:#1E212B;border-color:#2B2F3B;color:#A79E8C}
-body.dark-mode .day-tab.active{background:#C9A227;color:#1A1608}
+body.dark-mode .day-tab.active{background:var(--accent);color:var(--accent-text-on)}
 body.dark-mode .week-nav button{background:#1E212B;border-color:#2B2F3B;color:#D8D2C3}
 body.dark-mode .srch-wrap input,body.dark-mode .weight-input,body.dark-mode .manual-entry-row input{background:#14161B;border-color:#2B2F3B;color:#F2EFE6}
 body.dark-mode .ac{background:#1E212B;border-color:#2B2F3B}
@@ -401,12 +426,12 @@ body.dark-mode .log-row{border-color:#2B2F3B}
 body.dark-mode .log-row:hover{background:#14161B}
 body.dark-mode .log-row .nm{color:#F2EFE6}
 body.dark-mode .cat-btn{background:#1E212B;border-color:#2B2F3B;color:#A79E8C}
-body.dark-mode .cat-btn.active{background:#C9A227;color:#1A1608;border-color:#C9A227}
+body.dark-mode .cat-btn.active{background:var(--accent);color:var(--accent-text-on);border-color:var(--accent)}
 body.dark-mode .filter-row .cat-btn{background:#1E212B}
 body.dark-mode .mode-tab{color:#A79E8C}
-body.dark-mode .mode-tab.active{background:#C9A227;color:#1A1608}
+body.dark-mode .mode-tab.active{background:var(--accent);color:var(--accent-text-on)}
 body.dark-mode .main-tab{color:#A79E8C}
-body.dark-mode .main-tab.active{background:#C9A227;color:#1A1608}
+body.dark-mode .main-tab.active{background:var(--accent);color:var(--accent-text-on)}
 body.dark-mode .main-tabs{background:#1E212B;border-color:#2B2F3B}
 body.dark-mode .mode-tabs{background:#1E212B;border-color:#2B2F3B}
 body.dark-mode .add-row-btn{border-color:#2B2F3B;color:#8A8066}
@@ -453,9 +478,9 @@ body.dark-mode .top-food-count{background:#2B2F3B;color:#A79E8C}
 .copy-day-box .section-label{margin-bottom:10px}
 .copy-day-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .copy-day-row select{padding:8px 12px;border:1.5px solid #DCD0B0;border-radius:9px;font-size:13px;outline:none;background:#FBF8F0;color:#2E2818;cursor:pointer;flex:1;min-width:160px}
-.copy-day-row select:focus{border-color:#C9A227}
-.copy-day-btn{padding:8px 16px;border-radius:9px;border:none;background:#C9A227;color:#1A1608;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;transition:.15s}
-.copy-day-btn:hover{background:#A9850E}
+.copy-day-row select:focus{border-color:var(--accent)}
+.copy-day-btn{padding:8px 16px;border-radius:9px;border:none;background:var(--accent);color:var(--accent-text-on);font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;transition:.15s}
+.copy-day-btn:hover{background:var(--accent-hover)}
 body.dark-mode .copy-day-box{background:#1E212B;border-color:#2B2F3B}
 body.dark-mode .copy-day-row select{background:#14161B;border-color:#2B2F3B;color:#F2EFE6}
 body.dark-mode #copy-day-search{background:#14161B!important;border-color:#2B2F3B!important;color:#F2EFE6!important}
@@ -468,7 +493,7 @@ body.dark-mode #copy-day-drop{background:#1E212B!important;border-color:#2B2F3B!
 .toggle-switch{position:relative;display:inline-block;width:44px;height:24px;cursor:pointer}
 .toggle-switch input{opacity:0;width:0;height:0}
 .toggle-track{position:absolute;inset:0;background:#DCD0B0;border-radius:12px;transition:.3s}
-.toggle-switch input:checked+.toggle-track{background:#C9A227}
+.toggle-switch input:checked+.toggle-track{background:var(--accent)}
 .toggle-thumb{position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
 .toggle-switch input:checked~.toggle-thumb{transform:translateX(20px)}
 body.dark-mode .dark-mode-row{border-color:#2B2F3B}
@@ -630,7 +655,7 @@ body.dark-mode .dark-mode-row span{color:#F2EFE6}
   <div class="day-tabs" id="day-tabs"></div>
   <div class="macro-cards">
     <div class="mc"><div class="lbl">Calories</div><div class="val" id="tc" style="color:#B8623A">0 <small style="font-size:13px;font-weight:400">kcal</small></div><div class="goal" id="gc"></div><div class="bar-track"><div class="bar-fill" id="bc" style="background:#B8623A;width:0%"></div></div></div>
-    <div class="mc"><div class="lbl">Protéines</div><div class="val" id="tp" style="color:#C9A227">0 <small style="font-size:13px;font-weight:400">g</small></div><div class="goal" id="gp"></div><div class="bar-track"><div class="bar-fill" id="bp" style="background:#C9A227;width:0%"></div></div></div>
+    <div class="mc"><div class="lbl">Protéines</div><div class="val" id="tp" style="color:var(--accent)">0 <small style="font-size:13px;font-weight:400">g</small></div><div class="goal" id="gp"></div><div class="bar-track"><div class="bar-fill" id="bp" style="background:var(--accent);width:0%"></div></div></div>
     <div class="mc"><div class="lbl">Lipides</div><div class="val" id="tl" style="color:#B8860B">0 <small style="font-size:13px;font-weight:400">g</small></div><div class="goal" id="gl"></div><div class="bar-track"><div class="bar-fill" id="bl" style="background:#B8860B;width:0%"></div></div></div>
     <div class="mc"><div class="lbl">Glucides</div><div class="val" id="tg" style="color:#6B9B4F">0 <small style="font-size:13px;font-weight:400">g</small></div><div class="goal" id="gg"></div><div class="bar-track"><div class="bar-fill" id="bg" style="background:#6B9B4F;width:0%"></div></div></div>
   </div>
@@ -708,7 +733,7 @@ body.dark-mode .dark-mode-row span{color:#F2EFE6}
           style="width:100%;padding:8px 12px;border:1.5px solid #DCD0B0;border-radius:9px;font-size:13px;outline:none;background:#FBF8F0;color:#2E2818;cursor:pointer"
           readonly onclick="openCopyDrop()">
         <div id="copy-day-drop"
-          style="display:none;position:absolute;top:42px;left:0;right:0;background:#fff;border:1.5px solid #C9A227;border-radius:10px;z-index:9999;max-height:280px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.15)">
+          style="display:none;position:absolute;top:42px;left:0;right:0;background:#fff;border:1.5px solid var(--accent);border-radius:10px;z-index:9999;max-height:280px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.15)">
           <div id="copy-day-drop-inner"></div>
         </div>
       </div>
@@ -739,7 +764,7 @@ body.dark-mode .dark-mode-row span{color:#F2EFE6}
     <h3>Moyennes de la semaine</h3>
     <div class="week-stats">
       <div class="wstat"><div class="wval" id="ws-cal" style="color:#B8623A">—</div><div class="wlbl">Moy. Calories</div><div class="wsub" id="ws-cal-sub"></div></div>
-      <div class="wstat"><div class="wval" id="ws-prot" style="color:#C9A227">—</div><div class="wlbl">Moy. Protéines</div><div class="wsub" id="ws-prot-sub"></div></div>
+      <div class="wstat"><div class="wval" id="ws-prot" style="color:var(--accent)">—</div><div class="wlbl">Moy. Protéines</div><div class="wsub" id="ws-prot-sub"></div></div>
       <div class="wstat"><div class="wval" id="ws-lip" style="color:#B8860B">—</div><div class="wlbl">Moy. Lipides</div><div class="wsub" id="ws-lip-sub"></div></div>
       <div class="wstat"><div class="wval" id="ws-gluc" style="color:#6B9B4F">—</div><div class="wlbl">Moy. Glucides</div><div class="wsub" id="ws-gluc-sub"></div></div>
     </div>
@@ -748,7 +773,7 @@ body.dark-mode .dark-mode-row span{color:#F2EFE6}
     <div class="section-label" style="margin-bottom:14px">Protéines par jour (g)</div>
     <div class="chart-bars" id="chart-bars"></div>
     <div class="chart-legend">
-      <div class="legend-item"><div class="legend-dot" style="background:#C9A227"></div>Protéines</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div>Protéines</div>
       <div class="legend-item"><div class="legend-dot" style="background:#C1443B;opacity:.6"></div>Objectif</div>
       <div class="legend-item"><div class="legend-dot" style="background:#6B9B4F;opacity:.7"></div>Moyenne semaine</div>
     </div>
@@ -768,7 +793,7 @@ body.dark-mode .dark-mode-row span{color:#F2EFE6}
           <!-- fond gris -->
           <circle cx="90" cy="90" r="70" fill="none" stroke="#EEE7D6" stroke-width="20" id="donut-bg"/>
           <!-- arc de progression -->
-          <circle cx="90" cy="90" r="70" fill="none" stroke="#C9A227" stroke-width="20"
+          <circle cx="90" cy="90" r="70" fill="none" stroke="var(--accent)" stroke-width="20"
             stroke-linecap="round"
             stroke-dasharray="439.8"
             stroke-dashoffset="439.8"
@@ -777,7 +802,7 @@ body.dark-mode .dark-mode-row span{color:#F2EFE6}
         </svg>
         <!-- texte central -->
         <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
-          <div id="donut-pct" style="font-size:28px;font-weight:700;color:#C9A227;line-height:1">0%</div>
+          <div id="donut-pct" style="font-size:28px;font-weight:700;color:var(--accent);line-height:1">0%</div>
           <div style="font-size:11px;color:#8C8371;margin-top:4px">de l'objectif</div>
         </div>
       </div>
@@ -838,7 +863,7 @@ body.dark-mode .dark-mode-row span{color:#F2EFE6}
     <h3>Moyennes du mois</h3>
     <div class="week-stats">
       <div class="wstat"><div class="wval" id="mm-cal" style="color:#B8623A">—</div><div class="wlbl">Moy. Calories / jour</div><div class="wsub" id="mm-cal-sub"></div></div>
-      <div class="wstat"><div class="wval" id="mm-prot" style="color:#C9A227">—</div><div class="wlbl">Moy. Protéines / jour</div><div class="wsub" id="mm-prot-sub"></div></div>
+      <div class="wstat"><div class="wval" id="mm-prot" style="color:var(--accent)">—</div><div class="wlbl">Moy. Protéines / jour</div><div class="wsub" id="mm-prot-sub"></div></div>
       <div class="wstat"><div class="wval" id="mm-lip" style="color:#B8860B">—</div><div class="wlbl">Moy. Lipides / jour</div><div class="wsub" id="mm-lip-sub"></div></div>
       <div class="wstat"><div class="wval" id="mm-gluc" style="color:#6B9B4F">—</div><div class="wlbl">Moy. Glucides / jour</div><div class="wsub" id="mm-gluc-sub"></div></div>
     </div>
@@ -847,23 +872,23 @@ body.dark-mode .dark-mode-row span{color:#F2EFE6}
     <h3>Totaux du mois</h3>
     <div class="week-stats">
       <div class="wstat"><div class="wval" id="mt-cal" style="color:#B8623A;font-size:16px">—</div><div class="wlbl">Total Calories</div><div class="wsub" id="mt-days"></div></div>
-      <div class="wstat"><div class="wval" id="mt-prot" style="color:#C9A227;font-size:16px">—</div><div class="wlbl">Total Protéines</div></div>
+      <div class="wstat"><div class="wval" id="mt-prot" style="color:var(--accent);font-size:16px">—</div><div class="wlbl">Total Protéines</div></div>
       <div class="wstat"><div class="wval" id="mt-lip" style="color:#B8860B;font-size:16px">—</div><div class="wlbl">Total Lipides</div></div>
       <div class="wstat"><div class="wval" id="mt-gluc" style="color:#6B9B4F;font-size:16px">—</div><div class="wlbl">Total Glucides</div></div>
     </div>
   </div>
   <div class="chart-box">
     <div class="section-label" style="margin-bottom:14px">Protéines par semaine — moy. journalière (g)</div>
-    <div class="chart-bars" id="month-bars-prot" style="height:110px"></div>
+    <div class="chart-bars" id="month-bars-prot" style="height:176px"></div>
     <div class="chart-legend">
-      <div class="legend-item"><div class="legend-dot" style="background:#C9A227"></div>Moy. protéines/jour</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div>Moy. protéines/jour</div>
       <div class="legend-item"><div class="legend-dot" style="background:#C1443B;opacity:.5"></div>Objectif</div>
       <div class="legend-item"><div class="legend-dot" style="background:#6B9B4F;opacity:.6"></div>Moyenne du mois</div>
     </div>
   </div>
   <div class="chart-box" style="margin-top:16px">
     <div class="section-label" style="margin-bottom:14px">Calories par semaine — moy. journalière (kcal)</div>
-    <div class="chart-bars" id="month-bars-cal" style="height:110px"></div>
+    <div class="chart-bars" id="month-bars-cal" style="height:176px"></div>
   </div>
 
   <!-- ─── SÉPARATEUR ─── -->
@@ -880,7 +905,7 @@ body.dark-mode .dark-mode-row span{color:#F2EFE6}
     <h3>Moyennes de l'année</h3>
     <div class="week-stats">
       <div class="wstat"><div class="wval" id="ym-cal" style="color:#B8623A">—</div><div class="wlbl">Moy. Calories / jour</div><div class="wsub" id="ym-cal-sub"></div></div>
-      <div class="wstat"><div class="wval" id="ym-prot" style="color:#C9A227">—</div><div class="wlbl">Moy. Protéines / jour</div><div class="wsub" id="ym-prot-sub"></div></div>
+      <div class="wstat"><div class="wval" id="ym-prot" style="color:var(--accent)">—</div><div class="wlbl">Moy. Protéines / jour</div><div class="wsub" id="ym-prot-sub"></div></div>
       <div class="wstat"><div class="wval" id="ym-lip" style="color:#B8860B">—</div><div class="wlbl">Moy. Lipides / jour</div><div class="wsub" id="ym-lip-sub"></div></div>
       <div class="wstat"><div class="wval" id="ym-gluc" style="color:#6B9B4F">—</div><div class="wlbl">Moy. Glucides / jour</div><div class="wsub" id="ym-gluc-sub"></div></div>
     </div>
@@ -889,22 +914,22 @@ body.dark-mode .dark-mode-row span{color:#F2EFE6}
     <h3>Totaux de l'année</h3>
     <div class="week-stats">
       <div class="wstat"><div class="wval" id="yt-cal" style="color:#B8623A;font-size:16px">—</div><div class="wlbl">Total Calories</div><div class="wsub" id="yt-days"></div></div>
-      <div class="wstat"><div class="wval" id="yt-prot" style="color:#C9A227;font-size:16px">—</div><div class="wlbl">Total Protéines</div></div>
+      <div class="wstat"><div class="wval" id="yt-prot" style="color:var(--accent);font-size:16px">—</div><div class="wlbl">Total Protéines</div></div>
       <div class="wstat"><div class="wval" id="yt-lip" style="color:#B8860B;font-size:16px">—</div><div class="wlbl">Total Lipides</div></div>
       <div class="wstat"><div class="wval" id="yt-gluc" style="color:#6B9B4F;font-size:16px">—</div><div class="wlbl">Total Glucides</div></div>
     </div>
   </div>
   <div class="chart-box">
     <div class="section-label" style="margin-bottom:14px">Protéines par mois — moy. journalière (g)</div>
-    <div class="chart-bars" id="year-bars-prot" style="height:110px"></div>
+    <div class="chart-bars" id="year-bars-prot" style="height:176px"></div>
     <div class="chart-legend">
-      <div class="legend-item"><div class="legend-dot" style="background:#C9A227"></div>Moy. protéines/jour</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div>Moy. protéines/jour</div>
       <div class="legend-item"><div class="legend-dot" style="background:#C1443B;opacity:.5"></div>Objectif</div>
     </div>
   </div>
   <div class="chart-box" style="margin-top:16px;margin-bottom:20px">
     <div class="section-label" style="margin-bottom:14px">Calories par mois — moy. journalière (kcal)</div>
-    <div class="chart-bars" id="year-bars-cal" style="height:110px"></div>
+    <div class="chart-bars" id="year-bars-cal" style="height:176px"></div>
   </div>
 
 </div>
@@ -943,8 +968,8 @@ body.dark-mode .dark-mode-row span{color:#F2EFE6}
         <div style="font-size:11px;color:#A89F8C;margin-top:4px" id="goal-cal-detail"></div>
       </div>
       <div class="goal-field">
-        <label style="color:#C9A227">Protéines (g)</label>
-        <input type="number" id="goal-prot" min="0" oninput="onGoalMacroChange()" style="border-color:#E3C87A">
+        <label style="color:var(--accent)">Protéines (g)</label>
+        <input type="number" id="goal-prot" min="0" oninput="onGoalMacroChange()" style="border-color:var(--accent-soft-border)">
         <div style="font-size:11px;color:#A89F8C;margin-top:4px" id="goal-prot-kcal"></div>
       </div>
       <div class="goal-field">
@@ -962,12 +987,12 @@ body.dark-mode .dark-mode-row span{color:#F2EFE6}
     <div style="margin:16px 0 20px">
       <div style="font-size:11px;font-weight:700;color:#A89F8C;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Répartition calorique</div>
       <div style="display:flex;height:12px;border-radius:8px;overflow:hidden;gap:2px" id="goal-bar">
-        <div id="gbar-p" style="background:#C9A227;transition:width .4s"></div>
+        <div id="gbar-p" style="background:var(--accent);transition:width .4s"></div>
         <div id="gbar-l" style="background:#B8860B;transition:width .4s"></div>
         <div id="gbar-g" style="background:#6B9B4F;transition:width .4s"></div>
       </div>
       <div style="display:flex;gap:16px;margin-top:8px;flex-wrap:wrap" id="goal-bar-legend">
-        <span style="font-size:11px;color:#C9A227;font-weight:600" id="gleg-p"></span>
+        <span style="font-size:11px;color:var(--accent);font-weight:600" id="gleg-p"></span>
         <span style="font-size:11px;color:#B8860B;font-weight:600" id="gleg-l"></span>
         <span style="font-size:11px;color:#6B9B4F;font-weight:600" id="gleg-g"></span>
       </div>
@@ -991,6 +1016,10 @@ body.dark-mode .dark-mode-row span{color:#F2EFE6}
         <div class="toggle-thumb"></div>
       </label>
     </div>
+    <div style="margin-top:16px;padding-top:16px;border-top:1px solid #EEE7D6">
+      <div class="section-label" style="margin-bottom:12px">Couleur d'accent</div>
+      <div id="theme-picker" style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px"></div>
+    </div>
   </div>
 </div>
 
@@ -1013,7 +1042,7 @@ body.dark-mode .dark-mode-row span{color:#F2EFE6}
       <div class="section-label">Programme</div>
       <div id="stretch-program-list"></div>
     </div>
-    <button onclick="startStretch()" style="width:100%;padding:16px;border-radius:12px;border:none;background:#C9A227;color:#1A1608;font-size:16px;font-weight:700;cursor:pointer;transition:.2s;display:flex;align-items:center;justify-content:center;gap:10px">
+    <button onclick="startStretch()" style="width:100%;padding:16px;border-radius:12px;border:none;background:var(--accent);color:var(--accent-text-on);font-size:16px;font-weight:700;cursor:pointer;transition:.2s;display:flex;align-items:center;justify-content:center;gap:10px">
       <svg viewBox="0 0 24 24" fill="currentColor" style="width:16px;height:16px"><polygon points="5 3 19 12 5 21 5 3"/></svg> Lancer la séance
     </button>
   </div>
@@ -1027,7 +1056,7 @@ body.dark-mode .dark-mode-row span{color:#F2EFE6}
         <span style="font-size:12px;color:#8C8371" id="stretch-time-total">15:00</span>
       </div>
       <div style="height:6px;background:#EEE7D6;border-radius:3px;overflow:hidden">
-        <div id="stretch-progress-bar" style="height:6px;background:#C9A227;border-radius:3px;width:0%;transition:width .5s"></div>
+        <div id="stretch-progress-bar" style="height:6px;background:var(--accent);border-radius:3px;width:0%;transition:width .5s"></div>
       </div>
     </div>
 
@@ -1041,7 +1070,7 @@ body.dark-mode .dark-mode-row span{color:#F2EFE6}
       <div style="position:relative;width:150px;height:150px;margin:0 auto 24px">
         <svg viewBox="0 0 150 150" width="150" height="150" style="transform:rotate(-90deg)">
           <circle cx="75" cy="75" r="65" fill="none" stroke="#EEE7D6" stroke-width="10"/>
-          <circle cx="75" cy="75" r="65" fill="none" stroke="#C9A227" stroke-width="10"
+          <circle cx="75" cy="75" r="65" fill="none" stroke="var(--accent)" stroke-width="10"
             stroke-linecap="round"
             stroke-dasharray="408.4"
             stroke-dashoffset="0"
@@ -1049,7 +1078,7 @@ body.dark-mode .dark-mode-row span{color:#F2EFE6}
             style="transition:stroke-dashoffset .5s linear"/>
         </svg>
         <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
-          <div id="stretch-countdown" style="font-size:42px;font-weight:700;color:#C9A227;line-height:1">45</div>
+          <div id="stretch-countdown" style="font-size:42px;font-weight:700;color:var(--accent);line-height:1">45</div>
           <div style="font-size:11px;color:#8C8371">secondes</div>
         </div>
       </div>
@@ -1059,7 +1088,7 @@ body.dark-mode .dark-mode-row span{color:#F2EFE6}
         <button onclick="pauseStretch()" id="stretch-pause-btn" style="padding:12px 24px;border-radius:10px;border:1.5px solid #DCD0B0;background:#fff;font-size:14px;font-weight:600;cursor:pointer;min-width:120px;color:#2E2818">
           ⏸ Pause
         </button>
-        <button onclick="skipStretch()" style="padding:12px 24px;border-radius:10px;border:none;background:#F7EFD9;color:#C9A227;font-size:14px;font-weight:600;cursor:pointer;min-width:120px">
+        <button onclick="skipStretch()" style="padding:12px 24px;border-radius:10px;border:none;background:var(--accent-soft-bg);color:var(--accent);font-size:14px;font-weight:600;cursor:pointer;min-width:120px">
           ⏭ Suivant
         </button>
         <button onclick="stopStretch()" style="padding:12px 24px;border-radius:10px;border:1.5px solid #F5E3DC;background:#fff;color:#C1443B;font-size:14px;font-weight:600;cursor:pointer;min-width:120px">
@@ -1078,7 +1107,7 @@ body.dark-mode .dark-mode-row span{color:#F2EFE6}
       <div style="font-size:56px;margin-bottom:12px">🎉</div>
       <div style="font-size:22px;font-weight:700;color:#4C6B3A;margin-bottom:8px">Séance terminée !</div>
       <div style="font-size:14px;color:#8C8371;margin-bottom:24px">Bravo ! Tu as complété 15 minutes d'étirements full body.</div>
-      <button onclick="resetStretch()" style="padding:14px 32px;border-radius:12px;border:none;background:#C9A227;color:#1A1608;font-size:15px;font-weight:700;cursor:pointer">
+      <button onclick="resetStretch()" style="padding:14px 32px;border-radius:12px;border:none;background:var(--accent);color:var(--accent-text-on);font-size:15px;font-weight:700;cursor:pointer">
         Recommencer
       </button>
     </div>
@@ -1093,7 +1122,7 @@ body.dark-mode .dark-mode-row span{color:#F2EFE6}
 
     <!-- MODE TABS -->
     <div style="display:flex;gap:0;margin-bottom:16px;border:1px solid #DCD0B0;border-radius:10px;overflow:hidden;background:#F5F2E8">
-      <button id="modal-tab-manual" onclick="setModalMode('manual')" style="flex:1;padding:9px;font-size:13px;font-weight:600;border:none;background:#C9A227;color:#1A1608;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> Saisie manuelle</button>
+      <button id="modal-tab-manual" onclick="setModalMode('manual')" style="flex:1;padding:9px;font-size:13px;font-weight:600;border:none;background:var(--accent);color:var(--accent-text-on);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> Saisie manuelle</button>
       <button id="modal-tab-recipe" onclick="setModalMode('recipe')" style="flex:1;padding:9px;font-size:13px;font-weight:600;border:none;background:transparent;color:#8C8371;cursor:pointer;border-left:1px solid #DCD0B0;display:flex;align-items:center;justify-content:center;gap:6px"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg> Créer une recette</button>
     </div>
 
@@ -1141,7 +1170,7 @@ body.dark-mode .dark-mode-row span{color:#F2EFE6}
           <div id="rf-ac" style="display:none;position:absolute;top:40px;left:0;right:0;background:#fff;border:1.5px solid #DCD0B0;border-radius:10px;z-index:9999;max-height:200px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.12)"></div>
         </div>
         <input type="number" id="rf-qty" placeholder="g" min="1" style="width:80px;padding:8px;border:1.5px solid #DCD0B0;border-radius:9px;font-size:13px;outline:none;background:#FBF8F0">
-        <button onclick="addRecipeIngredient()" style="padding:8px 14px;border-radius:9px;border:none;background:#C9A227;color:#1A1608;font-size:13px;font-weight:600;cursor:pointer">+</button>
+        <button onclick="addRecipeIngredient()" style="padding:8px 14px;border-radius:9px;border:none;background:var(--accent);color:var(--accent-text-on);font-size:13px;font-weight:600;cursor:pointer">+</button>
       </div>
 
       <!-- Liste ingrédients -->
@@ -1152,7 +1181,7 @@ body.dark-mode .dark-mode-row span{color:#F2EFE6}
         <div style="font-size:11px;font-weight:700;color:#A89F8C;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Macros totales de la recette</div>
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:8px">
           <div style="text-align:center"><div id="rf-total-cal" style="font-size:16px;font-weight:700;color:#B8623A">0</div><div style="font-size:10px;color:#8C8371">kcal total</div></div>
-          <div style="text-align:center"><div id="rf-total-p" style="font-size:16px;font-weight:700;color:#C9A227">0g</div><div style="font-size:10px;color:#8C8371">Protéines</div></div>
+          <div style="text-align:center"><div id="rf-total-p" style="font-size:16px;font-weight:700;color:var(--accent)">0g</div><div style="font-size:10px;color:#8C8371">Protéines</div></div>
           <div style="text-align:center"><div id="rf-total-l" style="font-size:16px;font-weight:700;color:#B8860B">0g</div><div style="font-size:10px;color:#8C8371">Lipides</div></div>
           <div style="text-align:center"><div id="rf-total-g" style="font-size:16px;font-weight:700;color:#6B9B4F">0g</div><div style="font-size:10px;color:#8C8371">Glucides</div></div>
         </div>
@@ -1160,7 +1189,7 @@ body.dark-mode .dark-mode-row span{color:#F2EFE6}
           <div style="font-size:11px;color:#A89F8C;margin-bottom:6px">Par portion (÷ <span id="rf-portions-display">1</span>)</div>
           <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
             <div style="text-align:center"><div id="rf-per-cal" style="font-size:14px;font-weight:700;color:#B8623A">0</div><div style="font-size:10px;color:#8C8371">kcal</div></div>
-            <div style="text-align:center"><div id="rf-per-p" style="font-size:14px;font-weight:700;color:#C9A227">0g</div><div style="font-size:10px;color:#8C8371">Prot.</div></div>
+            <div style="text-align:center"><div id="rf-per-p" style="font-size:14px;font-weight:700;color:var(--accent)">0g</div><div style="font-size:10px;color:#8C8371">Prot.</div></div>
             <div style="text-align:center"><div id="rf-per-l" style="font-size:14px;font-weight:700;color:#B8860B">0g</div><div style="font-size:10px;color:#8C8371">Lip.</div></div>
             <div style="text-align:center"><div id="rf-per-g" style="font-size:14px;font-weight:700;color:#6B9B4F">0g</div><div style="font-size:10px;color:#8C8371">Gluc.</div></div>
           </div>
@@ -2375,7 +2404,7 @@ function renderDBTable(){
     restoreBtn=document.createElement('button');
     restoreBtn.id='restore-btn';
     restoreBtn.style.cssText='margin-top:10px;padding:7px 14px;border-radius:8px;border:1px solid #DCD0B0;background:#fff;color:#8C8371;font-size:12px;cursor:pointer;transition:.15s';
-    restoreBtn.onmouseover=()=>restoreBtn.style.background='#F7EFD9';
+    restoreBtn.onmouseover=()=>restoreBtn.style.background='var(--accent-soft-bg)';
     restoreBtn.onmouseout=()=>restoreBtn.style.background='#fff';
     document.querySelector('#page-aliments .settings-box').appendChild(restoreBtn);
   }
@@ -2596,7 +2625,7 @@ function renderMonthPage(){
   const weekProtAvg=weeks.map(w=>avgTotals(w).p);
   const weekCalAvg=weeks.map(w=>avgTotals(w).cal);
 
-  renderGenericBarChart('month-bars-prot',weekLabels,weekProtAvg,'#C9A227',currentGoals().p);
+  renderGenericBarChart('month-bars-prot',weekLabels,weekProtAvg,'var(--accent)',currentGoals().p);
   renderGenericBarChart('month-bars-cal',weekLabels,weekCalAvg,'#B8623A',currentGoals().cal);
 }
 
@@ -2635,7 +2664,7 @@ function renderYearPage(){
   document.getElementById('yt-gluc').textContent=tot.g>0?tot.g+'g':'—';
   document.getElementById('yt-days').textContent=avg.days>0?`sur ${avg.days} jours renseignés`:'';
 
-  renderGenericBarChart('year-bars-prot',SHORT_MONTHS,monthProtAvg,'#C9A227',currentGoals().p);
+  renderGenericBarChart('year-bars-prot',SHORT_MONTHS,monthProtAvg,'var(--accent)',currentGoals().p);
   renderGenericBarChart('year-bars-cal',SHORT_MONTHS,monthCalAvg,'#B8623A',currentGoals().cal);
 }
 
@@ -2718,7 +2747,7 @@ function render(){
         <span style="color:${isDark?'#655D48':'#DCD0B0'}">·</span>
         <span class="v" style="color:#B8623A">${f.cal} kcal</span>
         <span style="color:${isDark?'#655D48':'#DCD0B0'}">·</span>
-        <span class="v" style="color:#C9A227">P ${f.p}g</span>
+        <span class="v" style="color:var(--accent)">P ${f.p}g</span>
         <span style="color:${isDark?'#655D48':'#DCD0B0'}">·</span>
         <span class="v" style="color:#B8860B">L ${f.l}g</span>
         <span style="color:${isDark?'#655D48':'#DCD0B0'}">·</span>
@@ -2747,7 +2776,7 @@ function renderDonut(totals, dayGoals){
   const avgP=activeDays>0?r1(totalP/activeDays):0;
 
   // Couleur selon progression
-  const color=pct>=100?'#6B9B4F':pct>=70?'#C9A227':pct>=40?'#B8860B':'#C1443B';
+  const color=pct>=100?'#6B9B4F':pct>=70?'var(--accent)':pct>=40?'#B8860B':'#C1443B';
 
   // Cercle : circonférence = 2π×70 ≈ 439.8
   const CIRC=439.8;
@@ -2773,7 +2802,7 @@ function renderDonut(totals, dayGoals){
       const v=totals[i].p;
       const h=v>0?Math.max(4,Math.round(v/maxP*36)):4;
       const ok=v>=dayGoals[i].p;
-      const bc=v===0?(isDark?'#2B2F3B':'#EEE7D6'):ok?'#6B9B4F':'#C9A227';
+      const bc=v===0?(isDark?'#2B2F3B':'#EEE7D6'):ok?'#6B9B4F':'var(--accent)';
       return `<div style="flex:1;height:${h}px;background:${bc};border-radius:3px 3px 0 0;min-width:16px;align-self:flex-end"></div>`;
     }).join('');
   }
@@ -2804,7 +2833,7 @@ function renderWeekPage(){
   // CHART PROT — objectif = moyenne des objectifs de la semaine pour la ligne de référence
   const avgGoalP=Math.round(dayGoals.reduce((a,g)=>a+g.p,0)/7);
   const avgGoalCal=Math.round(dayGoals.reduce((a,g)=>a+g.cal,0)/7);
-  renderBarChart('chart-bars',totals.map(t=>t.p),'#C9A227',avgGoalP,avg.p>0?avg.p:null,'#6B9B4F',dayGoals.map(g=>g.p));
+  renderBarChart('chart-bars',totals.map(t=>t.p),'var(--accent)',avgGoalP,avg.p>0?avg.p:null,'#6B9B4F',dayGoals.map(g=>g.p));
   renderBarChart('chart-bars-cal',totals.map(t=>t.cal),'#B8623A',avgGoalCal,null,null,dayGoals.map(g=>g.cal));
   renderDonut(totals,dayGoals);
 }
@@ -2838,7 +2867,7 @@ function renderBarChart(containerId,values,color,goal,avg,avgColor,perBarGoals){
       const over=v>0&&v>dayGoal;
       const barColor=over?'#C1443B':(isA?color:(isDark?'#4A3A1C':'#E6D9B0'));
       const valColor=over?'#C1443B':(isA?color:(isDark?'#8A8066':'#A79E8C'));
-      const dayColor=isA?(isDark?'#E0C170':color):(isT?(isDark?'#D9B54A':'#C9A227'):(isDark?'#655D48':'#A89F8C'));
+      const dayColor=isA?(isDark?'#E0C170':color):(isT?(isDark?'var(--accent-bright)':'var(--accent)'):(isDark?'#655D48':'#A89F8C'));
       // ligne objectif individuelle par barre si différente de la globale
       const dayGoalPx=perBarGoals?Math.round(BAR_H-(dayGoal/maxV)*BAR_H):goalPx;
       return `<div class="chart-col" onclick="setDay(${i});showPage('journal')" style="position:relative;height:${BAR_H+28}px">
@@ -2891,7 +2920,7 @@ function renderCopyDropItems(entries, isDark){
   if(!inner)return;
   const dark=isDark!==undefined?isDark:document.body.classList.contains('dark-mode');
   const bg=dark?'#1E212B':'#fff';
-  const bgHover=dark?'#2B2F3B':'#F7EFD9';
+  const bgHover=dark?'#2B2F3B':'var(--accent-soft-bg)';
   const textMain=dark?'#F2EFE6':'#221D14';
   const textSub=dark?'#A79E8C':'#8C8371';
   const border=dark?'#2B2F3B':'#EEE7D6';
@@ -2911,7 +2940,7 @@ function renderCopyDropItems(entries, isDark){
 
   // forcer le fond du conteneur aussi
   const drop=document.getElementById('copy-day-drop');
-  if(drop){drop.style.background=bg;drop.style.borderColor=dark?'#2B2F3B':'#C9A227';}
+  if(drop){drop.style.background=bg;drop.style.borderColor=dark?'#2B2F3B':'var(--accent)';}
 }
 
 function openCopyDrop(){
@@ -3045,10 +3074,10 @@ function setModalMode(mode){
   currentModalMode=mode;
   document.getElementById('modal-mode-manual').style.display=mode==='manual'?'block':'none';
   document.getElementById('modal-mode-recipe').style.display=mode==='recipe'?'block':'none';
-  document.getElementById('modal-tab-manual').style.background=mode==='manual'?'#C9A227':'transparent';
-  document.getElementById('modal-tab-manual').style.color=mode==='manual'?'#1A1608':'#8C8371';
-  document.getElementById('modal-tab-recipe').style.background=mode==='recipe'?'#C9A227':'transparent';
-  document.getElementById('modal-tab-recipe').style.color=mode==='recipe'?'#1A1608':'#8C8371';
+  document.getElementById('modal-tab-manual').style.background=mode==='manual'?'var(--accent)':'transparent';
+  document.getElementById('modal-tab-manual').style.color=mode==='manual'?'var(--accent-text-on)':'#8C8371';
+  document.getElementById('modal-tab-recipe').style.background=mode==='recipe'?'var(--accent)':'transparent';
+  document.getElementById('modal-tab-recipe').style.color=mode==='recipe'?'var(--accent-text-on)':'#8C8371';
   if(mode==='recipe'){
     // populate categorie select
     const cats=getCatKeys();
@@ -3296,6 +3325,7 @@ function toggleDarkMode(){
   const on=document.getElementById('dark-mode-toggle').checked;
   document.body.classList.toggle('dark-mode',on);
   localStorage.setItem(LS_DARK,on?'1':'0');
+  renderThemePicker();
 }
 function loadDarkMode(){
   const on=localStorage.getItem(LS_DARK)==='1';
@@ -3303,6 +3333,42 @@ function loadDarkMode(){
   document.documentElement.classList.remove('dark-mode-early');
   const toggle=document.getElementById('dark-mode-toggle');
   if(toggle)toggle.checked=on;
+}
+
+// ── THÈME DE COULEUR ─────────────────────────────────────────────
+const LS_ACCENT='macros_accent_theme';
+const ACCENT_THEMES={
+  gold:{label:'Or',accent:'#C9A227',textOn:'#1A1608'},
+  emerald:{label:'Émeraude',accent:'#2E9A66',textOn:'#FFFFFF'},
+  sapphire:{label:'Saphir',accent:'#3E7CB8',textOn:'#FFFFFF'},
+  amethyst:{label:'Améthyste',accent:'#7C5FC4',textOn:'#FFFFFF'},
+  silver:{label:'Argent',accent:'#9C8F72',textOn:'#1A1608'}
+};
+function setAccentTheme(key){
+  const t=ACCENT_THEMES[key];
+  if(!t)return;
+  const s=document.documentElement.style;
+  s.setProperty('--accent',t.accent);
+  s.setProperty('--accent-text-on',t.textOn);
+  localStorage.setItem(LS_ACCENT,key);
+  const meta=document.querySelector('meta[name="theme-color"]');
+  if(meta)meta.setAttribute('content',t.accent);
+  renderThemePicker(key);
+}
+function loadAccentTheme(){
+  const saved=localStorage.getItem(LS_ACCENT)||'gold';
+  setAccentTheme(saved);
+}
+function renderThemePicker(activeKey){
+  const el=document.getElementById('theme-picker');
+  if(!el)return;
+  const active=activeKey||localStorage.getItem(LS_ACCENT)||'gold';
+  const isDark=document.body.classList.contains('dark-mode');
+  el.innerHTML=Object.entries(ACCENT_THEMES).map(([key,t])=>`
+    <button onclick="setAccentTheme('${key}')" style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 6px;border-radius:10px;border:1.5px solid ${key===active?t.accent:(isDark?'#2B2F3B':'#DCD0B0')};background:${key===active?`color-mix(in srgb, ${t.accent} ${isDark?'20%':'12%'}, transparent)`:'transparent'};cursor:pointer;transition:.15s">
+      <span style="width:26px;height:26px;border-radius:50%;background:${t.accent};display:flex;align-items:center;justify-content:center;color:${t.textOn};font-size:13px">${key===active?'✓':''}</span>
+      <span style="font-size:11px;font-weight:600;color:${isDark?'#A79E8C':'#5C5440'}">${t.label}</span>
+    </button>`).join('');
 }
 
 // ── PHOTO / GEMINI ───────────────────────────────────────────────
@@ -3322,9 +3388,9 @@ function onPhotoSelected(input){
     document.getElementById('photo-preview-wrap').style.display='block';
     const btn=document.getElementById('analyze-btn');
     btn.disabled=false;
-    btn.style.background='#C9A227';
+    btn.style.background='var(--accent)';
     btn.style.cursor='pointer';
-    document.getElementById('photo-drop-zone').style.borderColor='#C9A227';
+    document.getElementById('photo-drop-zone').style.borderColor='var(--accent)';
   };
   reader.readAsDataURL(file);
 }
@@ -3354,7 +3420,7 @@ async function analyzePhoto(){
   lbl.textContent='Analyse en cours...';
   document.getElementById('photo-results').innerHTML=`
     <div style="text-align:center;padding:20px;color:#8C8371;font-size:13px">
-      <div style="width:28px;height:28px;border:3px solid #DCD0B0;border-top-color:#C9A227;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 10px"></div>
+      <div style="width:28px;height:28px;border:3px solid #DCD0B0;border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 10px"></div>
       Gemini analyse ton repas...
     </div>`;
 
@@ -3388,7 +3454,7 @@ Sois précis et réaliste dans tes estimations.`;
         Erreur : ${e.message}
       </div>`;
   }
-  btn.disabled=false;btn.style.background='#C9A227';btn.style.cursor='pointer';
+  btn.disabled=false;btn.style.background='var(--accent)';btn.style.cursor='pointer';
   lbl.textContent='Analyser avec Gemini';
 }
 
@@ -3409,10 +3475,10 @@ function renderPhotoResults(aliments){
         <div style="font-size:13px;font-weight:600;color:${textMain};margin-bottom:2px">${a.nom}</div>
         <div style="font-size:11px;color:${textSub}">${a.quantite_g}g · ${a.calories} kcal · P ${a.proteines_g}g · L ${a.lipides_g}g · G ${a.glucides_g}g</div>
       </div>
-      <button onclick="addPhotoItem(${i})" id="pbtn-${i}" style="padding:6px 12px;border-radius:8px;border:none;background:#C9A227;color:#1A1608;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">+ Ajouter</button>
+      <button onclick="addPhotoItem(${i})" id="pbtn-${i}" style="padding:6px 12px;border-radius:8px;border:none;background:var(--accent);color:var(--accent-text-on);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">+ Ajouter</button>
     </div>`).join('');
 
-  html+=`<button onclick="addAllPhotoItems()" style="width:100%;padding:10px;border-radius:9px;border:2px solid #C9A227;background:transparent;color:#C9A227;font-size:13px;font-weight:600;cursor:pointer;margin-top:4px">✓ Tout ajouter (${aliments.length} aliment${aliments.length>1?'s':''})</button>`;
+  html+=`<button onclick="addAllPhotoItems()" style="width:100%;padding:10px;border-radius:9px;border:2px solid var(--accent);background:transparent;color:var(--accent);font-size:13px;font-weight:600;cursor:pointer;margin-top:4px">✓ Tout ajouter (${aliments.length} aliment${aliments.length>1?'s':''})</button>`;
 
   document.getElementById('photo-results').innerHTML=html;
   // stocker pour addAllPhotoItems
@@ -3457,7 +3523,7 @@ async function analyzeVoiceWithGemini(text){
   }
   resultsEl.innerHTML=`
     <div style="text-align:center;padding:20px;color:#8C8371;font-size:13px">
-      <div style="width:28px;height:28px;border:3px solid #DCD0B0;border-top-color:#C9A227;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 10px"></div>
+      <div style="width:28px;height:28px;border:3px solid #DCD0B0;border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 10px"></div>
       Gemini analyse ta description...
     </div>`;
 
@@ -3506,10 +3572,10 @@ function renderVoiceGeminiResults(aliments){
         <div style="font-size:13px;font-weight:600;color:${textMain};margin-bottom:2px">${a.nom}</div>
         <div style="font-size:11px;color:${textSub}">${a.quantite_g}g · ${a.calories} kcal · P ${a.proteines_g}g · L ${a.lipides_g}g · G ${a.glucides_g}g</div>
       </div>
-      <button onclick="addVoiceItem(${i})" id="vbtn-${i}" style="padding:6px 12px;border-radius:8px;border:none;background:#C9A227;color:#1A1608;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">+ Ajouter</button>
+      <button onclick="addVoiceItem(${i})" id="vbtn-${i}" style="padding:6px 12px;border-radius:8px;border:none;background:var(--accent);color:var(--accent-text-on);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">+ Ajouter</button>
     </div>`).join('');
 
-  html+=`<button onclick="addAllVoiceItems()" style="width:100%;padding:10px;border-radius:9px;border:2px solid #C9A227;background:transparent;color:#C9A227;font-size:13px;font-weight:600;cursor:pointer;margin-top:4px">✓ Tout ajouter (${aliments.length} aliment${aliments.length>1?'s':''})</button>`;
+  html+=`<button onclick="addAllVoiceItems()" style="width:100%;padding:10px;border-radius:9px;border:2px solid var(--accent);background:transparent;color:var(--accent);font-size:13px;font-weight:600;cursor:pointer;margin-top:4px">✓ Tout ajouter (${aliments.length} aliment${aliments.length>1?'s':''})</button>`;
   resultsEl.innerHTML=html;
 }
 
@@ -3677,8 +3743,8 @@ function loadStretchExercise(){
   document.getElementById('stretch-name').textContent=ex.name;
   document.getElementById('stretch-desc').textContent=ex.desc;
   document.getElementById('stretch-countdown').textContent=stretchTimeLeft;
-  document.getElementById('stretch-countdown').style.color='#C9A227';
-  document.getElementById('stretch-timer-arc').setAttribute('stroke','#C9A227');
+  document.getElementById('stretch-countdown').style.color='var(--accent)';
+  document.getElementById('stretch-timer-arc').setAttribute('stroke','var(--accent)');
 
   // Prochain exercice
   const next=STRETCH_EXERCISES[stretchIdx+1];
@@ -3715,8 +3781,8 @@ function tickStretch(){
     document.getElementById('stretch-timer-arc').setAttribute('stroke','#B8860B');
     setTimeout(()=>{
       if(stretchTimeLeft>10){
-        document.getElementById('stretch-countdown').style.color='#C9A227';
-        document.getElementById('stretch-timer-arc').setAttribute('stroke','#C9A227');
+        document.getElementById('stretch-countdown').style.color='var(--accent)';
+        document.getElementById('stretch-timer-arc').setAttribute('stroke','var(--accent)');
       }
     },2000);
     return;
@@ -3754,7 +3820,7 @@ function updateStretchTimer(){
   document.getElementById('stretch-countdown').textContent=stretchTimeLeft;
 
   // couleur selon urgence
-  const color=stretchTimeLeft<=10?'#C1443B':stretchTimeLeft<=20?'#B8860B':'#C9A227';
+  const color=stretchTimeLeft<=10?'#C1443B':stretchTimeLeft<=20?'#B8860B':'var(--accent)';
   document.getElementById('stretch-countdown').style.color=color;
   document.getElementById('stretch-timer-arc').setAttribute('stroke',color);
 }
@@ -3777,8 +3843,8 @@ function pauseStretch(){
   const btn=document.getElementById('stretch-pause-btn');
   if(stretchPaused){
     btn.textContent='▶ Reprendre';
-    btn.style.background='#C9A227';
-    btn.style.color='#1A1608';
+    btn.style.background='var(--accent)';
+    btn.style.color='var(--accent-text-on)';
     btn.style.border='none';
     speak('Pause.');
   } else {
@@ -3848,6 +3914,7 @@ if(window.speechSynthesis){
 // ── INIT ─────────────────────────────────────────────────────────
 loadData();
 loadDarkMode();
+loadAccentTheme();
 if(window.updateGeminiAccessUI) window.updateGeminiAccessUI();
 currentDay=new Date().getDay()===0?6:new Date().getDay()-1;
 buildCatFilters();renderWeightInput();initVoice();render();
