@@ -8,6 +8,9 @@
 <meta name="apple-mobile-web-app-title" content="Macros">
 <meta name="theme-color" content="#C9A227">
 <title>Suivi Macros</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <!-- Firebase SDK -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -132,8 +135,8 @@ window.updateGeminiAccessUI = function() {
   const voiceLock = document.getElementById('gemini-voice-lock');
   const photoZone = document.getElementById('photo-drop-zone');
   const micBtn = document.getElementById('mic-btn');
-  if(photoLock) photoLock.style.display = allowed ? 'none' : 'block';
-  if(voiceLock) voiceLock.style.display = allowed ? 'none' : 'block';
+  if(photoLock) photoLock.style.display = allowed ? 'none' : 'flex';
+  if(voiceLock) voiceLock.style.display = allowed ? 'none' : 'flex';
   if(photoZone) {
     photoZone.style.opacity = allowed ? '1' : '.5';
     photoZone.style.pointerEvents = allowed ? 'auto' : 'none';
@@ -150,14 +153,17 @@ window.updateGeminiAccessUI = function() {
 </script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Segoe UI',system-ui,sans-serif;background:#F7F4EC;color:#221D14;padding:20px;min-height:100vh}
-h1{font-size:22px;font-weight:700;margin-bottom:4px}
-h1 span{color:#C9A227}
-.subtitle{font-size:12px;color:#A89F8C;margin-bottom:16px}
+body{font-family:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;background:#F7F4EC;color:#221D14;padding:20px;min-height:100vh;-webkit-font-smoothing:antialiased}
+.val,.wval,.i-val,#tc,#tp,#tl,#tg,.log-row .v,.db-table td{font-variant-numeric:tabular-nums}
+h1{font-size:21px;font-weight:600;margin-bottom:2px;letter-spacing:-.01em}
+h1 span{color:#C9A227;font-weight:700}
+.subtitle{font-size:12.5px;color:#A89F8C;margin-bottom:18px;font-weight:500}
+.icon{width:16px;height:16px;flex-shrink:0}
+.icon-lg{width:20px;height:20px;flex-shrink:0}
 
 /* NAV TABS */
 .main-tabs{display:flex;gap:0;margin-bottom:20px;border:1px solid #DCD0B0;border-radius:12px;overflow:hidden;background:#F5F2E8}
-.main-tab{flex:1;padding:10px;font-size:13px;font-weight:600;cursor:pointer;border:none;background:transparent;color:#8C8371;transition:.15s;display:flex;align-items:center;justify-content:center;gap:5px}
+.main-tab{flex:1;padding:10px;font-size:12.5px;font-weight:600;cursor:pointer;border:none;background:transparent;color:#8C8371;transition:.15s;display:flex;align-items:center;justify-content:center;gap:6px}
 .main-tab:not(:last-child){border-right:1px solid #DCD0B0}
 .main-tab.active{background:#C9A227;color:#1A1608}
 .main-tab:hover:not(.active){background:#F7EFD9;color:#C9A227}
@@ -198,6 +204,8 @@ h1 span{color:#C9A227}
 /* ADD BOX */
 .add-box{background:#fff;border:1px solid #EAE2D0;border-radius:14px;padding:18px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,.04)}
 .section-label{font-size:11px;font-weight:700;color:#A89F8C;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px}
+.stats-section-title{font-size:13px;font-weight:700;color:#221D14;text-transform:uppercase;letter-spacing:.06em;margin-bottom:16px;padding-bottom:9px;border-bottom:2px solid #C9A227;display:inline-block}
+body.dark-mode .stats-section-title{color:#F2EFE6}
 .mode-tabs{display:flex;gap:0;margin-bottom:14px;border:1px solid #DCD0B0;border-radius:10px;overflow:hidden;background:#F5F2E8}
 .mode-tab{flex:1;padding:9px;font-size:13px;font-weight:600;cursor:pointer;border:none;background:transparent;color:#8C8371;transition:.15s;display:flex;align-items:center;justify-content:center;gap:5px}
 .mode-tab:not(:last-child){border-right:1px solid #DCD0B0}
@@ -304,6 +312,11 @@ body.dark-mode .legend-item{color:#8A8066}
 
 /* SETTINGS PAGE */
 .settings-box{background:#fff;border:1px solid #EAE2D0;border-radius:14px;padding:20px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.stat-tile{text-align:center;padding:12px;background:#F5F2E8;border-radius:10px}
+.stat-tile .stat-num{font-size:22px;font-weight:700;color:#221D14}
+.stat-tile .stat-lbl{font-size:11px;color:#8C8371;margin-top:2px}
+body.dark-mode .stat-tile{background:#14161B}
+body.dark-mode .stat-tile .stat-num{color:#F2EFE6}
 .settings-box h3{font-size:14px;font-weight:700;color:#221D14;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid #EEE7D6}
 .goal-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:16px}
 .goal-field label{display:block;font-size:12px;font-weight:600;color:#8C8371;margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em}
@@ -324,9 +337,9 @@ body.dark-mode .legend-item{color:#8A8066}
 .db-table td{padding:9px 10px;border-bottom:1px solid #F0EAD9;color:#2E2818}
 .db-table tr:hover td{background:#F5F2E8}
 .db-table tr:last-child td{border-bottom:none}
-.edit-food-btn{padding:4px 10px;border-radius:6px;border:1px solid #DCD0B0;background:#fff;font-size:11px;color:#5C5440;cursor:pointer;transition:.15s;margin-right:4px}
+.edit-food-btn{padding:5px;border-radius:6px;border:1px solid #DCD0B0;background:#fff;font-size:11px;color:#5C5440;cursor:pointer;transition:.15s;margin-right:4px;display:inline-flex;align-items:center;justify-content:center}
 .edit-food-btn:hover{background:#F7EFD9;color:#C9A227;border-color:#E3C87A}
-.del-food-btn{padding:4px 10px;border-radius:6px;border:1px solid #F5E3DC;background:#fff;font-size:11px;color:#C1443B;cursor:pointer;transition:.15s}
+.del-food-btn{padding:5px;border-radius:6px;border:1px solid #F5E3DC;background:#fff;font-size:11px;color:#C1443B;cursor:pointer;transition:.15s;display:inline-flex;align-items:center;justify-content:center}
 .del-food-btn:hover{background:#F5E3DC}
 .custom-badge{display:inline-block;font-size:9px;padding:1px 5px;border-radius:6px;background:#E3EEDC;color:#4C7A3D;font-weight:700;margin-left:4px;vertical-align:2px}
 
@@ -582,14 +595,14 @@ body.dark-mode .dark-mode-row span{color:#F2EFE6}
 <body>
 
 <h1>Suivi <span>Macros</span></h1>
-<p class="subtitle">🎙️ Voix · 🔍 Recherche · ✏️ Manuel</p>
+<p class="subtitle">Suivi nutritionnel quotidien</p>
 
 <!-- AUTH BANNER -->
 <div class="auth-banner" id="auth-banner">
   <div class="sync-dot" id="sync-dot" style="background:#DCD0B0"></div>
   <span class="auth-user" id="user-info">Non connecté — données locales uniquement</span>
   <button class="auth-btn login-btn" id="login-btn" onclick="firebaseSignIn()">
-    🔑 Connexion Google
+    Connexion Google
   </button>
   <button class="auth-btn logout-btn" id="logout-btn" onclick="firebaseSignOut()" style="display:none">
     Déconnexion
@@ -600,11 +613,11 @@ body.dark-mode .dark-mode-row span{color:#F2EFE6}
 
 <!-- MAIN TABS -->
 <div class="main-tabs">
-  <button class="main-tab active" onclick="showPage('journal')" id="ptab-journal">📅 Jour</button>
-  <button class="main-tab" onclick="showPage('stats')" id="ptab-stats">📊 Statistiques</button>
-  <button class="main-tab" onclick="showPage('objectifs')" id="ptab-objectifs">🎯 Objectifs</button>
-  <button class="main-tab" onclick="showPage('etirements')" id="ptab-etirements">🧘 Étirements</button>
-  <button class="main-tab" onclick="showPage('aliments')" id="ptab-aliments">🥦 Aliments</button>
+  <button class="main-tab active" onclick="showPage('journal')" id="ptab-journal"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Jour</button>
+  <button class="main-tab" onclick="showPage('stats')" id="ptab-stats"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg> Statistiques</button>
+  <button class="main-tab" onclick="showPage('objectifs')" id="ptab-objectifs"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg> Objectifs</button>
+  <button class="main-tab" onclick="showPage('etirements')" id="ptab-etirements"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> Étirements</button>
+  <button class="main-tab" onclick="showPage('aliments')" id="ptab-aliments"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg> Aliments</button>
 </div>
 
 <!-- ══════════════════════════════════════════════ PAGE JOURNAL -->
@@ -624,10 +637,10 @@ body.dark-mode .dark-mode-row span{color:#F2EFE6}
   <div class="add-box">
     <div class="section-label">Ajouter des aliments</div>
     <div class="mode-tabs">
-      <button class="mode-tab active" onclick="setMode('search')" id="tab-search">🔍 Recherche</button>
-      <button class="mode-tab" onclick="setMode('photo')" id="tab-photo">📷 Photo</button>
-      <button class="mode-tab" onclick="setMode('voice')" id="tab-voice">🎙️ Voix</button>
-      <button class="mode-tab" onclick="setMode('manual')" id="tab-manual">✏️ Manuel</button>
+      <button class="mode-tab active" onclick="setMode('search')" id="tab-search"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Recherche</button>
+      <button class="mode-tab" onclick="setMode('photo')" id="tab-photo"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2Z"/><circle cx="12" cy="13" r="4"/></svg> Photo</button>
+      <button class="mode-tab" onclick="setMode('voice')" id="tab-voice"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><line x1="12" y1="19" x2="12" y2="22"/></svg> Voix</button>
+      <button class="mode-tab" onclick="setMode('manual')" id="tab-manual"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> Manuel</button>
     </div>
     <!-- SEARCH -->
     <div id="mode-search">
@@ -646,12 +659,11 @@ body.dark-mode .dark-mode-row span{color:#F2EFE6}
     </div>
     <!-- PHOTO -->
     <div id="mode-photo" style="display:none">
-      <div id="gemini-photo-lock" style="display:none;padding:12px 14px;background:#F5E7C6;border-radius:10px;font-size:12px;color:#6B4A0A;margin-bottom:12px">
-        🔒 Analyse photo réservée au propriétaire de l'application.
+      <div id="gemini-photo-lock" style="display:none;padding:12px 14px;background:#F5E7C6;border-radius:10px;font-size:12px;color:#6B4A0A;margin-bottom:12px;align-items:center;gap:8px"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><span>Analyse photo réservée au propriétaire de l'application.</span>
       </div>
       <div id="photo-drop-zone" style="border:2px dashed #DCD0B0;border-radius:12px;padding:24px;text-align:center;cursor:pointer;position:relative;transition:.2s;background:#FBF8F0" onclick="document.getElementById('photo-input').click()">
         <input type="file" id="photo-input" accept="image/*" capture="environment" style="display:none" onchange="onPhotoSelected(this)">
-        <div style="font-size:36px;margin-bottom:8px">📷</div>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:32px;height:32px;margin-bottom:8px;color:#A89F8C"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2Z"/><circle cx="12" cy="13" r="4"/></svg>
         <div style="font-size:14px;font-weight:500;color:#5C5440;margin-bottom:4px">Prends ou importe une photo de ton repas</div>
         <div style="font-size:12px;color:#A89F8C">Analysé par Google Gemini (gratuit)</div>
       </div>
@@ -660,20 +672,19 @@ body.dark-mode .dark-mode-row span{color:#F2EFE6}
         <button onclick="clearPhoto()" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.5);color:#fff;border:none;border-radius:50%;width:28px;height:28px;cursor:pointer;font-size:14px">✕</button>
       </div>
       <button id="analyze-btn" onclick="analyzePhoto()" disabled style="width:100%;margin-top:12px;padding:12px;border-radius:10px;border:none;background:#BAB19C;color:#fff;font-size:14px;font-weight:600;cursor:not-allowed;transition:.2s">
-        <span id="analyze-label">✨ Analyser avec Gemini</span>
+        <span id="analyze-label">Analyser avec Gemini</span>
       </button>
       <div id="photo-results" style="margin-top:12px"></div>
     </div>
     <!-- VOICE -->
     <div id="mode-voice" style="display:none">
-      <div id="gemini-voice-lock" style="display:none;padding:12px 14px;background:#F5E7C6;border-radius:10px;font-size:12px;color:#6B4A0A;margin-bottom:12px">
-        🔒 Analyse vocale réservée au propriétaire de l'application.
+      <div id="gemini-voice-lock" style="display:none;padding:12px 14px;background:#F5E7C6;border-radius:10px;font-size:12px;color:#6B4A0A;margin-bottom:12px;align-items:center;gap:8px"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><span>Analyse vocale réservée au propriétaire de l'application.</span>
       </div>
       <div class="voice-area">
-        <div><button class="mic-btn" id="mic-btn" onclick="toggleVoice()">🎙️</button></div>
+        <div><button class="mic-btn" id="mic-btn" onclick="toggleVoice()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:30px;height:30px"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><line x1="12" y1="19" x2="12" y2="22"/></svg></button></div>
         <div class="voice-status" id="voice-status">Appuie sur le micro et décris ce que tu as mangé</div>
         <div class="voice-transcript" id="voice-transcript" style="display:none"></div>
-        <div class="no-speech-note" id="no-speech-note">⚠️ Reconnaissance vocale non supportée. Utilise Chrome ou Edge.</div>
+        <div class="no-speech-note" id="no-speech-note">Reconnaissance vocale non supportée. Utilise Chrome ou Edge.</div>
       </div>
       <div id="voice-results"></div>
     </div>
@@ -689,7 +700,7 @@ body.dark-mode .dark-mode-row span{color:#F2EFE6}
   </div>
   <!-- COPIER UN JOUR -->
   <div class="copy-day-box" id="copy-day-box">
-    <div class="section-label">📋 Copier un autre jour vers aujourd'hui</div>
+    <div class="section-label">Copier un autre jour vers aujourd'hui</div>
     <div class="copy-day-row">
       <div style="position:relative;flex:1">
         <input type="text" id="copy-day-search" placeholder="Rechercher un jour..." autocomplete="off"
@@ -718,9 +729,7 @@ body.dark-mode .dark-mode-row span{color:#F2EFE6}
 <div id="page-stats" style="display:none">
 
   <!-- ─── SECTION SEMAINE ─── -->
-  <div style="font-size:13px;font-weight:700;color:#221D14;margin-bottom:12px;display:flex;align-items:center;gap:8px">
-    <span style="font-size:18px">📊</span> Semaine
-  </div>
+  <div class="stats-section-title">Semaine</div>
   <div class="week-nav" style="margin-bottom:12px">
     <button onclick="changeWeek(-1)">← Préc.</button>
     <span id="week-label2"></span>
@@ -786,34 +795,32 @@ body.dark-mode .dark-mode-row span{color:#F2EFE6}
 
   <!-- ─── INSIGHTS ─── -->
   <div style="height:1px;background:#EAE2D0;margin:24px 0"></div>
-  <div style="font-size:13px;font-weight:700;color:#221D14;margin-bottom:12px;display:flex;align-items:center;gap:8px" id="insights-title">
-    <span style="font-size:18px">💡</span> Insights de la semaine
-  </div>
+  <div class="stats-section-title" id="insights-title">Insights de la semaine</div>
   <div class="insights-grid">
     <div class="insight-card">
-      <div class="i-title">🏆 Meilleur jour protéines</div>
+      <div class="i-title">Meilleur jour protéines</div>
       <div class="i-val" id="ins-best-day">—</div>
       <div class="i-sub" id="ins-best-day-sub"></div>
     </div>
     <div class="insight-card">
-      <div class="i-title">🔥 Jour le plus calorique</div>
+      <div class="i-title">Jour le plus calorique</div>
       <div class="i-val" id="ins-max-cal-day">—</div>
       <div class="i-sub" id="ins-max-cal-sub"></div>
     </div>
     <div class="insight-card">
-      <div class="i-title">✅ Objectif protéines atteint</div>
+      <div class="i-title">Objectif protéines atteint</div>
       <div class="i-val" id="ins-goal-days">—</div>
       <div class="i-sub">jours cette semaine</div>
     </div>
     <div class="insight-card">
-      <div class="i-title">📅 Régularité du mois</div>
+      <div class="i-title">Régularité du mois</div>
       <div class="i-val" id="ins-regularity">—</div>
       <div class="i-sub" id="ins-regularity-sub"></div>
     </div>
   </div>
   <!-- TOP ALIMENTS -->
   <div class="chart-box">
-    <div class="section-label" style="margin-bottom:12px">🥇 Top 10 aliments de la semaine</div>
+    <div class="section-label" style="margin-bottom:12px">Top 10 aliments de la semaine</div>
     <div id="top-foods-list"><div style="font-size:13px;color:#BAB19C;padding:8px 0">Aucune donnée cette semaine.</div></div>
   </div>
 
@@ -821,9 +828,7 @@ body.dark-mode .dark-mode-row span{color:#F2EFE6}
   <div style="height:1px;background:#EAE2D0;margin:28px 0"></div>
 
   <!-- ─── SECTION MOIS ─── -->
-  <div style="font-size:13px;font-weight:700;color:#221D14;margin-bottom:12px;display:flex;align-items:center;gap:8px">
-    <span style="font-size:18px">📆</span> Mois
-  </div>
+  <div class="stats-section-title">Mois</div>
   <div class="week-nav" style="margin-bottom:12px">
     <button onclick="changeMonth(-1)">← Préc.</button>
     <span id="month-label"></span>
@@ -865,9 +870,7 @@ body.dark-mode .dark-mode-row span{color:#F2EFE6}
   <div style="height:1px;background:#EAE2D0;margin:28px 0"></div>
 
   <!-- ─── SECTION ANNÉE ─── -->
-  <div style="font-size:13px;font-weight:700;color:#221D14;margin-bottom:12px;display:flex;align-items:center;gap:8px">
-    <span style="font-size:18px">🗓️</span> Année
-  </div>
+  <div class="stats-section-title">Année</div>
   <div class="week-nav" style="margin-bottom:12px">
     <button onclick="changeYear(-1)">← Préc.</button>
     <span id="year-label"></span>
@@ -935,22 +938,22 @@ body.dark-mode .dark-mode-row span{color:#F2EFE6}
     </p>
     <div class="goal-grid">
       <div class="goal-field" style="grid-column:1/-1">
-        <label style="color:#B8623A">🔥 Calories (kcal) — recalculées automatiquement</label>
+        <label style="color:#B8623A">Calories (kcal) — recalculées automatiquement</label>
         <input type="number" id="goal-cal" min="0" oninput="onGoalCalChange()" style="border-color:#E8C9B5;font-size:16px;font-weight:700;color:#B8623A">
         <div style="font-size:11px;color:#A89F8C;margin-top:4px" id="goal-cal-detail"></div>
       </div>
       <div class="goal-field">
-        <label style="color:#C9A227">💪 Protéines (g)</label>
+        <label style="color:#C9A227">Protéines (g)</label>
         <input type="number" id="goal-prot" min="0" oninput="onGoalMacroChange()" style="border-color:#E3C87A">
         <div style="font-size:11px;color:#A89F8C;margin-top:4px" id="goal-prot-kcal"></div>
       </div>
       <div class="goal-field">
-        <label style="color:#B8860B">🧈 Lipides (g)</label>
+        <label style="color:#B8860B">Lipides (g)</label>
         <input type="number" id="goal-lip" min="0" oninput="onGoalMacroChange()" style="border-color:#EAD9A0">
         <div style="font-size:11px;color:#A89F8C;margin-top:4px" id="goal-lip-kcal"></div>
       </div>
       <div class="goal-field">
-        <label style="color:#6B9B4F">🌾 Glucides (g)</label>
+        <label style="color:#6B9B4F">Glucides (g)</label>
         <input type="number" id="goal-gluc" min="0" oninput="onGoalMacroChange()" style="border-color:#D7E6C7">
         <div style="font-size:11px;color:#A89F8C;margin-top:4px" id="goal-gluc-kcal"></div>
       </div>
@@ -969,19 +972,19 @@ body.dark-mode .dark-mode-row span{color:#F2EFE6}
         <span style="font-size:11px;color:#6B9B4F;font-weight:600" id="gleg-g"></span>
       </div>
     </div>
-    <button class="save-goals-btn" onclick="saveGoals()">💾 Enregistrer les objectifs</button>
+    <button class="save-goals-btn" onclick="saveGoals()">Enregistrer les objectifs</button>
     <div id="goals-history-list" style="margin-top:16px"></div>
   </div>
   <div class="settings-box">
     <h3>Réinitialisation</h3>
     <p style="font-size:13px;color:#8C8371;margin-bottom:14px">Supprime toutes les données du journal (les aliments personnalisés et objectifs sont conservés).</p>
-    <button onclick="resetJournal()" style="padding:9px 16px;border-radius:9px;border:1px solid #F5E3DC;background:#fff;color:#C1443B;font-size:13px;font-weight:600;cursor:pointer">🗑️ Effacer le journal</button>
+    <button onclick="resetJournal()" style="padding:9px 16px;border-radius:9px;border:1px solid #F5E3DC;background:#fff;color:#C1443B;font-size:13px;font-weight:600;cursor:pointer">Effacer le journal</button>
   </div>
 
   <div class="settings-box">
     <h3>Apparence</h3>
     <div class="dark-mode-row">
-      <span>🌙 Mode sombre</span>
+      <span>Mode sombre</span>
       <label class="toggle-switch">
         <input type="checkbox" id="dark-mode-toggle" onchange="toggleDarkMode()">
         <div class="toggle-track"></div>
@@ -996,31 +999,22 @@ body.dark-mode .dark-mode-row span{color:#F2EFE6}
 
   <!-- Intro / contrôles -->
   <div class="settings-box" id="stretch-intro">
-    <h3>🧘 Séance d'étirements Full Body — 15 min</h3>
+    <h3>Séance d'étirements Full Body — 15 min</h3>
     <p style="font-size:13px;color:#8C8371;margin-bottom:16px;line-height:1.6">
       12 exercices guidés pour étirer tout le corps. La voix te guidera à chaque mouvement et t'annoncera les changements de côté — tu peux poser l'écran et écouter.
     </p>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px">
-      <div style="text-align:center;padding:12px;background:#F7EFD9;border-radius:10px">
-        <div style="font-size:22px;font-weight:700;color:#C9A227">12</div>
-        <div style="font-size:11px;color:#8C8371;margin-top:2px">exercices</div>
-      </div>
-      <div style="text-align:center;padding:12px;background:#E8EEDC;border-radius:10px">
-        <div style="font-size:22px;font-weight:700;color:#4C6B3A">16</div>
-        <div style="font-size:11px;color:#8C8371;margin-top:2px">minutes</div>
-      </div>
-      <div style="text-align:center;padding:12px;background:#F5E7C6;border-radius:10px">
-        <div style="font-size:22px;font-weight:700;color:#B8860B">1 min</div>
-        <div style="font-size:11px;color:#8C8371;margin-top:2px">par exercice</div>
-      </div>
+      <div class="stat-tile"><div class="stat-num">12</div><div class="stat-lbl">exercices</div></div>
+      <div class="stat-tile"><div class="stat-num">16</div><div class="stat-lbl">minutes</div></div>
+      <div class="stat-tile"><div class="stat-num">1 min</div><div class="stat-lbl">par exercice</div></div>
     </div>
     <!-- liste des exercices -->
     <div style="margin-bottom:20px">
-      <div style="font-size:11px;font-weight:700;color:#A89F8C;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Programme</div>
+      <div class="section-label">Programme</div>
       <div id="stretch-program-list"></div>
     </div>
     <button onclick="startStretch()" style="width:100%;padding:16px;border-radius:12px;border:none;background:#C9A227;color:#1A1608;font-size:16px;font-weight:700;cursor:pointer;transition:.2s;display:flex;align-items:center;justify-content:center;gap:10px">
-      ▶ Lancer la séance
+      <svg viewBox="0 0 24 24" fill="currentColor" style="width:16px;height:16px"><polygon points="5 3 19 12 5 21 5 3"/></svg> Lancer la séance
     </button>
   </div>
 
@@ -1085,7 +1079,7 @@ body.dark-mode .dark-mode-row span{color:#F2EFE6}
       <div style="font-size:22px;font-weight:700;color:#4C6B3A;margin-bottom:8px">Séance terminée !</div>
       <div style="font-size:14px;color:#8C8371;margin-bottom:24px">Bravo ! Tu as complété 15 minutes d'étirements full body.</div>
       <button onclick="resetStretch()" style="padding:14px 32px;border-radius:12px;border:none;background:#C9A227;color:#1A1608;font-size:15px;font-weight:700;cursor:pointer">
-        🔄 Recommencer
+        Recommencer
       </button>
     </div>
   </div>
@@ -1099,8 +1093,8 @@ body.dark-mode .dark-mode-row span{color:#F2EFE6}
 
     <!-- MODE TABS -->
     <div style="display:flex;gap:0;margin-bottom:16px;border:1px solid #DCD0B0;border-radius:10px;overflow:hidden;background:#F5F2E8">
-      <button id="modal-tab-manual" onclick="setModalMode('manual')" style="flex:1;padding:9px;font-size:13px;font-weight:600;border:none;background:#C9A227;color:#1A1608;cursor:pointer">✏️ Saisie manuelle</button>
-      <button id="modal-tab-recipe" onclick="setModalMode('recipe')" style="flex:1;padding:9px;font-size:13px;font-weight:600;border:none;background:transparent;color:#8C8371;cursor:pointer;border-left:1px solid #DCD0B0">🍳 Créer une recette</button>
+      <button id="modal-tab-manual" onclick="setModalMode('manual')" style="flex:1;padding:9px;font-size:13px;font-weight:600;border:none;background:#C9A227;color:#1A1608;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> Saisie manuelle</button>
+      <button id="modal-tab-recipe" onclick="setModalMode('recipe')" style="flex:1;padding:9px;font-size:13px;font-weight:600;border:none;background:transparent;color:#8C8371;cursor:pointer;border-left:1px solid #DCD0B0;display:flex;align-items:center;justify-content:center;gap:6px"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg> Créer une recette</button>
     </div>
 
     <!-- MODE MANUEL -->
@@ -1176,7 +1170,7 @@ body.dark-mode .dark-mode-row span{color:#F2EFE6}
 
     <div class="modal-actions" style="margin-top:16px">
       <button class="modal-cancel" onclick="closeModal()">Annuler</button>
-      <button class="modal-save" onclick="saveFoodOrRecipe()">💾 Enregistrer</button>
+      <button class="modal-save" onclick="saveFoodOrRecipe()">Enregistrer</button>
     </div>
   </div>
 </div>
@@ -2142,7 +2136,7 @@ function onSearch(val){
         <div class="ac-name"><span class="cat-tag">${f.cat}</span>${f.n}${f.dw?`<span class="dw-tag">${f.dw}g/${f.unit}</span>`:''}</div>
         <div class="ac-sub">${f.c} kcal · P ${f.p}g · L ${f.l}g · G ${f.g}g / 100g</div>
       </div>
-      <button class="ac-edit" onclick="openEditFromSearch(${idx})">✏️ Modifier</button>
+      <button class="ac-edit" onclick="openEditFromSearch(${idx})">Modifier</button>
     </div>`).join('');
   ac.style.display='block';
 }
@@ -2191,7 +2185,7 @@ function initVoice(){
   recognition.onstart=()=>{
     isRecording=true;
     document.getElementById('mic-btn').classList.add('recording');
-    document.getElementById('voice-status').textContent='🔴 Écoute… parle maintenant';
+    document.getElementById('voice-status').textContent='Écoute… parle maintenant';
     document.getElementById('voice-transcript').style.display='block';
     document.getElementById('voice-transcript').textContent='…';
     document.getElementById('voice-results').innerHTML='';
@@ -2209,7 +2203,7 @@ function initVoice(){
     isRecording=false;
     document.getElementById('mic-btn').classList.remove('recording');
     if(voiceText.trim()){
-      document.getElementById('voice-status').textContent='✅ Analyse en cours…';
+      document.getElementById('voice-status').textContent='Analyse en cours…';
       analyzeVoiceWithGemini(voiceText);
     } else {
       document.getElementById('voice-status').textContent='Rien détecté. Réessaie.';
@@ -2366,8 +2360,8 @@ function renderDBTable(){
       <td>${f.c}</td><td>${f.p}</td><td>${f.l}</td><td>${f.g}</td>
       <td>${f.dw?`${f.dw}g/${f.unit}`:'-'}</td>
       <td>
-        <button class="edit-food-btn" onclick="openModal(${fullIdx})">✏️</button>
-        <button class="del-food-btn" onclick="deleteFood('${type}',${realIdx})">🗑️</button>
+        <button class="edit-food-btn" onclick="openModal(${fullIdx})"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
+        <button class="del-food-btn" onclick="deleteFood('${type}',${realIdx})"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></button>
       </td>
     </tr>`;
   }).join('');
@@ -2957,7 +2951,7 @@ function filterCopyDays(q){
 }
 function copyDayTo(){
   if(!selectedCopyKey){
-    document.getElementById('copy-day-info').textContent='⚠️ Sélectionne d\'abord un jour source.';
+    document.getElementById('copy-day-info').textContent='Sélectionne d\'abord un jour source.';
     return;
   }
   // récupérer depuis localStorage pour avoir toutes les données
@@ -2972,7 +2966,7 @@ function copyDayTo(){
   if(!data[dstKey])data[dstKey]=[];
   data[dstKey].push(...JSON.parse(JSON.stringify(src)));
   saveData();render();
-  document.getElementById('copy-day-info').textContent=`✅ ${src.length} aliment(s) copiés depuis le ${selectedCopyKey}`;
+  document.getElementById('copy-day-info').textContent=`✓ ${src.length} aliment(s) copiés depuis le ${selectedCopyKey}`;
   selectedCopyKey='';
   const inp=document.getElementById('copy-day-search');
   if(inp)inp.value='';
@@ -3350,7 +3344,7 @@ async function analyzePhoto(){
   if(!window._isGeminiAllowed || !window._isGeminiAllowed()){
     document.getElementById('photo-results').innerHTML=`
       <div style="color:#C1443B;font-size:13px;padding:12px;background:#F5E3DC;border-radius:8px">
-        🔒 Cette fonction est réservée au propriétaire de l'application. Connecte-toi avec le compte autorisé pour utiliser l'analyse photo.
+        Cette fonction est réservée au propriétaire de l'application. Connecte-toi avec le compte autorisé pour utiliser l'analyse photo.
       </div>`;
     return;
   }
@@ -3391,11 +3385,11 @@ Sois précis et réaliste dans tes estimations.`;
   }catch(e){
     document.getElementById('photo-results').innerHTML=`
       <div style="color:#C1443B;font-size:13px;padding:12px;background:#F5E3DC;border-radius:8px">
-        ❌ Erreur : ${e.message}
+        Erreur : ${e.message}
       </div>`;
   }
   btn.disabled=false;btn.style.background='#C9A227';btn.style.cursor='pointer';
-  lbl.textContent='✨ Analyser avec Gemini';
+  lbl.textContent='Analyser avec Gemini';
 }
 
 function renderPhotoResults(aliments){
@@ -3418,7 +3412,7 @@ function renderPhotoResults(aliments){
       <button onclick="addPhotoItem(${i})" id="pbtn-${i}" style="padding:6px 12px;border-radius:8px;border:none;background:#C9A227;color:#1A1608;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">+ Ajouter</button>
     </div>`).join('');
 
-  html+=`<button onclick="addAllPhotoItems()" style="width:100%;padding:10px;border-radius:9px;border:2px solid #C9A227;background:transparent;color:#C9A227;font-size:13px;font-weight:600;cursor:pointer;margin-top:4px">✅ Tout ajouter (${aliments.length} aliment${aliments.length>1?'s':''})</button>`;
+  html+=`<button onclick="addAllPhotoItems()" style="width:100%;padding:10px;border-radius:9px;border:2px solid #C9A227;background:transparent;color:#C9A227;font-size:13px;font-weight:600;cursor:pointer;margin-top:4px">✓ Tout ajouter (${aliments.length} aliment${aliments.length>1?'s':''})</button>`;
 
   document.getElementById('photo-results').innerHTML=html;
   // stocker pour addAllPhotoItems
@@ -3457,7 +3451,7 @@ async function analyzeVoiceWithGemini(text){
   if(!window._isGeminiAllowed || !window._isGeminiAllowed()){
     resultsEl.innerHTML=`
       <div style="color:#C1443B;font-size:13px;padding:12px;background:#F5E3DC;border-radius:8px">
-        🔒 Cette fonction est réservée au propriétaire de l'application. Connecte-toi avec le compte autorisé pour utiliser l'analyse vocale.
+        Cette fonction est réservée au propriétaire de l'application. Connecte-toi avec le compte autorisé pour utiliser l'analyse vocale.
       </div>`;
     return;
   }
@@ -3489,7 +3483,7 @@ Réponds UNIQUEMENT en JSON valide, sans markdown, sans texte autour :
     const parsed=JSON.parse(clean);
     renderVoiceGeminiResults(parsed.aliments);
   }catch(e){
-    resultsEl.innerHTML=`<div style="color:#C1443B;font-size:13px;padding:12px;background:#F5E3DC;border-radius:8px">❌ Erreur : ${e.message}</div>`;
+    resultsEl.innerHTML=`<div style="color:#C1443B;font-size:13px;padding:12px;background:#F5E3DC;border-radius:8px">Erreur : ${e.message}</div>`;
   }
 }
 
@@ -3515,7 +3509,7 @@ function renderVoiceGeminiResults(aliments){
       <button onclick="addVoiceItem(${i})" id="vbtn-${i}" style="padding:6px 12px;border-radius:8px;border:none;background:#C9A227;color:#1A1608;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">+ Ajouter</button>
     </div>`).join('');
 
-  html+=`<button onclick="addAllVoiceItems()" style="width:100%;padding:10px;border-radius:9px;border:2px solid #C9A227;background:transparent;color:#C9A227;font-size:13px;font-weight:600;cursor:pointer;margin-top:4px">✅ Tout ajouter (${aliments.length} aliment${aliments.length>1?'s':''})</button>`;
+  html+=`<button onclick="addAllVoiceItems()" style="width:100%;padding:10px;border-radius:9px;border:2px solid #C9A227;background:transparent;color:#C9A227;font-size:13px;font-weight:600;cursor:pointer;margin-top:4px">✓ Tout ajouter (${aliments.length} aliment${aliments.length>1?'s':''})</button>`;
   resultsEl.innerHTML=html;
 }
 
@@ -3585,7 +3579,7 @@ window._mergeRemoteData = function(remote) {
     localStorage.setItem(LS_CUSTOM, JSON.stringify(customFoods));
     localStorage.setItem(LS_DELETED, JSON.stringify([...deletedBaseIds]));
     render();
-    showStatus('🔄 Sync reçue', 'ok');
+    showStatus('Sync reçue', 'ok');
     // mettre à jour le dot
     const dot = document.getElementById('sync-dot');
     if(dot) dot.style.background = '#4C6B3A';
