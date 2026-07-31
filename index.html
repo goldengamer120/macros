@@ -1027,7 +1027,7 @@ body.dark-mode .dark-mode-row span{color:#F2EFE6}
 
   <div class="settings-box">
     <h3>Apparence</h3>
-    <div class="dark-mode-row">
+    <div class="dark-mode-row" id="dark-mode-row" style="cursor:pointer">
       <span>Mode sombre</span>
       <label class="toggle-switch">
         <input type="checkbox" id="dark-mode-toggle" onchange="toggleDarkMode()">
@@ -3646,6 +3646,18 @@ function loadDarkMode(){
   document.documentElement.classList.remove('dark-mode-early');
   const toggle=document.getElementById('dark-mode-toggle');
   if(toggle)toggle.checked=on;
+  // Rend toute la ligne cliquable (pas seulement le petit interrupteur)
+  const row=document.getElementById('dark-mode-row');
+  if(row&&!row._wired){
+    row._wired=true;
+    row.addEventListener('click',e=>{
+      // si le clic vient de l'interrupteur lui-même, le <label> s'en charge déjà
+      if(e.target.closest('.toggle-switch'))return;
+      const cb=document.getElementById('dark-mode-toggle');
+      cb.checked=!cb.checked;
+      toggleDarkMode();
+    });
+  }
 }
 
 // ── THÈME DE COULEUR ─────────────────────────────────────────────
@@ -3685,8 +3697,12 @@ function renderThemePicker(activeKey){
 }
 
 // ── VERSION / CHANGELOG ──────────────────────────────────────────
-const APP_VERSION='1.1.0';
+const APP_VERSION='1.1.1';
 const CHANGELOG=[
+  {version:'1.1.1',date:'2026-07-30',changes:[
+    "Mode sombre : toute la ligne est désormais cliquable (avant, seul le petit interrupteur réagissait)",
+    "Onglet Scanner déplacé à gauche de Voix"
+  ]},
   {version:'1.1.0',date:'2026-07-30',changes:[
     "Nouveau : scanner de code-barres (onglet Scanner) — données Open Food Facts, plus de 3 millions de produits",
     "Possibilité d'ajouter un produit scanné directement à la base personnelle",
