@@ -3813,8 +3813,12 @@ function renderThemePicker(activeKey){
 }
 
 // ── VERSION / CHANGELOG ──────────────────────────────────────────
-const APP_VERSION='1.2.1';
+const APP_VERSION='1.3.0';
 const CHANGELOG=[
+  {version:'1.3.0',date:'2026-08-01',changes:[
+    "Scanner : un produit absent d'Open Food Facts se saisit directement dans le scanner",
+    "Le code-barres est mémorisé — les scans suivants du même produit sont instantanés et marchent hors-ligne"
+  ]},
   {version:'1.2.1',date:'2026-07-31',changes:[
     "Total du jour affiché en bas du journal (plus besoin de remonter aux cartes)",
     "Le journal vide propose désormais d'ajouter un aliment au lieu de constater le vide",
@@ -3943,10 +3947,52 @@ function manualBarcodeBox(){
   </div>`;
 }
 
+// Saisie sur place quand le produit manque : evite de renvoyer vers l'onglet
+// Manuel, ou le code-barres serait perdu et le produit jamais memorise.
+function newProductForm(code,raison,nom){
+  const champ=(id,ph,val)=>`<input id="${id}" type="number" inputmode="decimal" min="0" step="0.1"
+    placeholder="${ph}" value="${val||''}" style="width:100%;min-height:44px;padding:8px;border:1.5px solid #D6D6D1;
+    border-radius:8px;font-size:16px;text-align:center;background:#FAFAF9;outline:none">`;
+  return `<div style="padding:14px;background:#F3F3F1;border:1px solid #E5E5E2;border-radius:12px;margin-top:12px">
+    <div style="font-size:13px;font-weight:700;color:#221D14;margin-bottom:4px">${raison}</div>
+    <div style="font-size:11px;color:#5E584E;margin-bottom:12px">Code ${code} — saisis l'étiquette une fois, les prochains scans seront instantanés.</div>
+    <input id="np-nom" type="text" placeholder="Nom du produit" value="${(nom||'').replace(/"/g,'&quot;')}"
+      style="width:100%;min-height:44px;padding:8px 12px;border:1.5px solid #D6D6D1;border-radius:8px;
+      font-size:16px;margin-bottom:10px;background:#FAFAF9;outline:none">
+    <div style="font-size:11px;font-weight:700;color:#5E584E;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Pour 100 g</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px">
+      ${champ('np-cal','kcal')}${champ('np-p','Prot.')}${champ('np-l','Lip.')}${champ('np-g','Gluc.')}
+    </div>
+    <button type="button" onclick="saveNewProduct('${code}')" style="width:100%;min-height:44px;border-radius:9px;
+      border:none;background:var(--accent);color:var(--accent-text-on);font-size:14px;font-weight:700;cursor:pointer">
+      Enregistrer et ajouter</button>
+  </div>`;
+}
+
+function saveNewProduct(code){
+  const v=id=>parseFloat(document.getElementById(id).value)||0;
+  const nom=document.getElementById('np-nom').value.trim();
+  if(!nom){showStatus('Donne un nom au produit','err');return;}
+  const cal=v('np-cal');
+  if(cal<=0){showStatus('Indique au moins les calories','err');return;}
+  window._scanProduct={n:nom,c:cal,p:v('np-p'),l:v('np-l'),g:v('np-g'),serving:null,code};
+  saveScanToDB();          // memorise avec le code-barres
+  renderScanResult();      // puis flux normal : poids + ajout au journal
+}
+
 async function lookupBarcode(code){
   const resEl=document.getElementById('scan-result');
   if(!code||!/^\d{6,14}$/.test(code)){
     resEl.innerHTML=scanErrorBox('Code-barres invalide.')+manualBarcodeBox();
+    scanBusy=false;
+    return;
+  }
+  // Deja scanne une fois ? On ressort la fiche locale, sans reseau.
+  const connu=getFullDB().find(f=>f.code===code);
+  if(connu){
+    window._scanProduct={n:connu.n,c:connu.c,p:connu.p,l:connu.l,g:connu.g,
+                         serving:connu.dw||null,code,local:true};
+    renderScanResult();
     scanBusy=false;
     return;
   }
@@ -3960,14 +4006,15 @@ async function lookupBarcode(code){
     const r=await fetch(url);
     const d=await r.json();
     if(d.status!==1||!d.product){
-      resEl.innerHTML=scanErrorBox("Produit introuvable dans Open Food Facts (code "+code+"). Tu peux l'ajouter manuellement via l'onglet Manuel.")+manualBarcodeBox();
+      resEl.innerHTML=newProductForm(code,"Produit inconnu d'Open Food Facts.");
       scanBusy=false;
       return;
     }
     const p=d.product, n=p.nutriments||{};
     const kcal=n['energy-kcal_100g'];
     if(kcal===undefined||kcal===null){
-      resEl.innerHTML=scanErrorBox("Ce produit existe mais n'a pas d'informations nutritionnelles renseignées.")+manualBarcodeBox();
+      const nom=(p.product_name_fr||p.product_name||'').trim();
+      resEl.innerHTML=newProductForm(code,"Produit connu mais sans valeurs nutritionnelles.",nom);
       scanBusy=false;
       return;
     }
@@ -4048,7 +4095,8 @@ function saveScanToDB(){
     showStatus('Déjà dans la base','err');
     return;
   }
-  customFoods.push({n:p.n,cat:'Scannés',c:p.c,p:p.p,l:p.l,g:p.g});
+  // code conserve : le prochain scan du meme produit repond en local
+  customFoods.push({n:p.n,cat:'Scannés',c:p.c,p:p.p,l:p.l,g:p.g,code:p.code});
   localStorage.setItem(LS_CUSTOM,JSON.stringify(customFoods));
   if(window.firebaseSave)window.firebaseSave(getStatePayload());
   buildCatFilters();
