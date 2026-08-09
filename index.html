@@ -3813,8 +3813,12 @@ function renderThemePicker(activeKey){
 }
 
 // ── VERSION / CHANGELOG ──────────────────────────────────────────
-const APP_VERSION='1.4.0';
+const APP_VERSION='1.4.1';
 const CHANGELOG=[
+  {version:'1.4.1',date:'2026-08-06',changes:[
+    "Correction automatique de l'historique : les repas déjà enregistrés avec les anciennes valeurs sont recalculés au chargement",
+    "Les quantités que tu as ajustées à la main ne sont jamais écrasées"
+  ]},
   {version:'1.3.0',date:'2026-08-01',changes:[
     "Scanner : un produit absent d'Open Food Facts se saisit directement dans le scanner",
     "Le code-barres est mémorisé — les scans suivants du même produit sont instantanés et marchent hors-ligne"
@@ -4401,6 +4405,7 @@ window._mergeRemoteData = function(remote) {
     const dot = document.getElementById('sync-dot');
     if(dot) dot.style.background = '#4C6B3A';
   }
+  if(typeof repairPortionEntries==='function')repairPortionEntries();
 };
 
 // ── ÉTIREMENTS ───────────────────────────────────────────────────
@@ -4662,8 +4667,45 @@ if(window.speechSynthesis){
   window.speechSynthesis.onvoiceschanged=()=>window.speechSynthesis.getVoices();
 }
 
+// ── CORRECTIF HISTORIQUE (v1.4.0) ────────────────
+// Jusqu'a la v1.4.0, ces 146 aliments stockaient leur valeur PAR PORTION dans
+// le champ "pour 100 g". Les entrees deja enregistrees ont donc ete calculees
+// avec l'ancienne valeur (un Big Mac comptait 1100 kcal au lieu de 550).
+// On les recalcule -- mais uniquement si l'entree correspond exactement a
+// l'ancien calcul errone. La fonction est donc idempotente (la relancer ne fait
+// rien) et une quantite ajustee a la main n'est jamais ecrasee. C'est ce qui
+// permet de se passer d'un marqueur, que la fusion Firestore (le distant ecrase
+// le local) rendrait de toute facon peu fiable.
+const PORTION_FIXED_V140 = new Set(["7Up", "7Up Free", "Assiette kebab agneau", "Assiette mixte kebab", "BK Bacon King", "BK Big Fish", "BK Camembert House", "BK Chicken Royale", "BK Frites L", "BK King Fish", "BK Long Chicken", "BK Nuggets ×9", "BK Steakhouse", "BK Vegan Royale", "BK Whopper", "BK Whopper Double", "BK Whopper Junior", "Bière (5°)", "Bière légère (3°)", "Burger végétarien", "Burn Energy", "Café espresso", "Café latte", "California roll (pièce)", "California roll avocat (pièce)", "Canada Dry", "Champagne", "Chich taouk sandwich", "Coca-Cola", "Coca-Cola Cherry", "Coca-Cola Light", "Coca-Cola Vanille", "Coca-Cola Zero", "Croque-madame", "Croque-monsieur", "Crush Orange", "Dim sum vapeur (pièce)", "Dr Pepper", "Fanta Citron", "Fanta Orange", "Fanta Zero", "Frites kebab (portion)", "Gyoza (pièce)", "Irn-Bru", "Jus d'orange", "Jus de pomme", "KFC Bucket 4 pièces", "KFC Bucket 6 pièces", "KFC Burger Colonel", "KFC Filet Burger", "KFC Popcorn chicken L", "KFC Sauce BBQ", "KFC Tower Burger", "KFC Twister", "KFC Twister croustillant", "KFC Zinger Burger", "KFC Zinger Tower Burger", "Kebab assiette poulet", "Kebab assiette viande", "Kebab mixte (sandwich)", "Kebab poulet (sandwich)", "Kebab sauce blanche extra", "Kebab viande (sandwich)", "Kebab épicé (sandwich)", "Lait chocolaté", "Limonade artisanale", "Lipton Ice Tea", "Lipton Ice Tea Pêche", "Lipton Ice Tea Zero", "Maki concombre (pièce)", "McD Big Mac", "McD CBO", "McD Double Big Mac", "McD Filet-O-Fish", "McD Frites grandes", "McD Grand McExtrem", "McD McBacon", "McD McChicken", "McD McNuggets ×20", "McD McNuggets ×9", "McD McRib", "McD McWrap croustillant", "McD McWrap poulet grillé", "McD Quarter Pounder", "McD Royal Cheese", "McD Royal Deluxe", "McD Salé caramel McFlurry", "McD Sauce BBQ (pot)", "McD Sauce curry (pot)", "McD Wrap fromager", "Monster Energy", "Monster Zero", "Mountain Dew", "Nems (pièce)", "Nestea Citron", "Oasis Pomme Cassis Framboise", "Oasis Tropical", "Orangina", "Orangina Zero", "Panini jambon fromage", "Pepsi", "Pepsi Cherry", "Pepsi Max", "Perrier saveur citron", "Pizza calzone (part)", "Pizza pâte fine entière", "Protein shake maison", "Red Bull", "Red Bull Sugarfree", "Root Beer", "Rouleau d'été (été roll, pièce)", "Rouleaux de printemps (pièce)", "Sandwich jambon beurre", "Schweppes Agrumes", "Schweppes Tonic", "Schweppes Zero", "Shawarma (sandwich)", "Soda gingembre (Ginger Ale)", "Sprite", "Sprite Zero", "Subway Bœuf 15cm", "Subway Bœuf 30cm", "Subway Chicken Teriyaki 15cm", "Subway Falafel 15cm", "Subway Meatball 15cm", "Subway Poulet rôti 15cm", "Subway Poulet rôti 30cm", "Subway Steak & Cheese 15cm", "Subway Thon 15cm", "Subway Thon 30cm", "Subway Œufs mayo 15cm", "Sushi maki (pièce)", "Sushi nigiri anguille (pièce)", "Sushi nigiri crevette (pièce)", "Sushi nigiri poulpe (pièce)", "Sushi nigiri saumon (pièce)", "Sushi nigiri thon (pièce)", "Tacos (grand)", "Temaki (cône)", "Tropico", "Uramaki California crevette (pièce)", "Uramaki saumon avocat (pièce)", "Vimto", "Vin blanc sec", "Vin rosé", "Vin rouge"]);
+function repairPortionEntries(){
+  const db=getFullDB();
+  let n=0;
+  Object.values(data).forEach(log=>{
+    if(!Array.isArray(log))return;
+    log.forEach(e=>{
+      if(!e||!PORTION_FIXED_V140.has(e.nm))return;
+      const f=db.find(x=>x.n===e.nm);
+      if(!f||!f.dw)return;
+      const r=(e.w||0)/100;
+      const ancien=Math.round(f.c*(f.dw/100)*r);   // ce que l'ancienne valeur donnait
+      const correct=Math.round(f.c*r);
+      if(ancien===correct)return;
+      if(Math.abs((e.cal||0)-ancien)>1)return;     // pas l'ancien calcul : on ne touche pas
+      e.cal=correct; e.p=r1(f.p*r); e.l=r1(f.l*r); e.g=r1(f.g*r);
+      n++;
+    });
+  });
+  if(n){
+    saveData();
+    if(typeof render==='function')render();
+    showStatus(n+" entrée(s) d'historique corrigée(s)","ok");
+  }
+  return n;
+}
+
 // ── INIT ─────────────────────────────────────────────────────────
 loadData();
+repairPortionEntries();
 loadDarkMode();
 loadAccentTheme();
 renderVersionInfo();
