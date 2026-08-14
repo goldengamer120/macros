@@ -88,13 +88,23 @@ Le scanner de code-barres, lui, utilise [Open Food Facts](https://world.openfood
 
 Tout est dans `index.html` : le CSS dans `<style>`, le JS dans le dernier `<script>`, la base d'aliments dans `const BASE_DB=[...]`.
 
-**Valider avant de commit.** Il n'y a aucun test : une accolade en trop casse toute l'app silencieusement. Le minimum :
+**Valider avant de commit.** Il n'y a aucun test, et une erreur de syntaxe casse toute l'app *silencieusement* : la page s'affiche, mais plus aucun bouton ne répond.
 
-```bash
-python -c "import re;c=open('index.html',encoding='utf-8').read();js=re.search(r'<script>([\s\S]*)</script>',c).group(1);d={k:js.count(k) for k in '{}()[]'};print('OK' if d['{']==d['}'] and d['(']==d[')'] and d['[']==d[']'] else 'DESEQUILIBRE')"
+La seule vérification fiable est de **compiler chaque bloc `<script>` séparément**. Ouvre la page dans un navigateur, puis colle ceci dans la console (F12) :
+
+```js
+fetch(location.pathname+'?v='+Date.now()).then(r=>r.text()).then(h=>{
+  const b=[...h.matchAll(/<script(?![^>]*src)(?![^>]*type="module")[^>]*>([\s\S]*?)<\/script>/g)];
+  console.table(b.map((m,i)=>{try{new Function(m[1]);return{bloc:i,ok:'OK'}}
+                              catch(e){return{bloc:i,ok:'ERREUR',detail:e.message}}}));
+});
 ```
 
-Puis ouvre la page dans un navigateur et regarde la console : zéro erreur.
+`new Function()` compile sans exécuter : tu vois l'erreur exacte, sans effet de bord.
+
+> **N'utilise pas un simple comptage d'accolades.** Ça paraît suffisant, ça ne l'est pas : le compte porte sur la concaténation de tous les blocs `<script>` et ignore les chaînes de caractères. Une apostrophe non échappée dans `'d'historique'` ferme la chaîne, casse tout le script — et le compteur reste au vert. C'est arrivé.
+
+Recharge ensuite la page avec un paramètre anti-cache (`?v=2`) et vérifie la console : zéro erreur. Le cache du navigateur sert très volontiers l'ancienne version et fait croire qu'un correctif n'a rien changé.
 
 ### Pièges déjà rencontrés
 
