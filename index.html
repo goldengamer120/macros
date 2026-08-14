@@ -671,6 +671,8 @@ body.dark-mode .dark-mode-row span{color:#F2EFE6}
 <div class="save-status" id="save-status"></div>
 
 <!-- Toast d'annulation de suppression (zone pouce) -->
+<input type="file" id="label-input" accept="image/*" capture="environment" style="display:none" onchange="onLabelSelected(this)">
+
 <div id="undo-toast" role="status" aria-live="polite">
   <span id="undo-toast-msg"></span>
   <button type="button" onclick="undoRemoveFood()">Annuler</button>
@@ -1189,6 +1191,12 @@ body.dark-mode .dark-mode-row span{color:#F2EFE6}
 
     <!-- MODE MANUEL -->
     <div id="modal-mode-manual">
+      <button type="button" onclick="startLabelScan(fillModalFromLabel)"
+        style="width:100%;min-height:44px;margin-bottom:12px;border-radius:9px;border:1.5px solid var(--accent);background:transparent;color:var(--accent);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2Z"/><circle cx="12" cy="13" r="4"/></svg>
+        Remplir depuis une photo de l'étiquette
+      </button>
+      <div class="label-status" style="display:none;font-size:12px;margin-bottom:10px;text-align:center"></div>
       <div class="modal-grid">
         <div class="modal-field full"><label>Nom</label><input type="text" id="mf-name" placeholder="Ex: Poulet blanc cuit"></div>
         <div class="modal-field full">
@@ -3813,8 +3821,13 @@ function renderThemePicker(activeKey){
 }
 
 // ── VERSION / CHANGELOG ──────────────────────────────────────────
-const APP_VERSION='1.4.1';
+const APP_VERSION='1.5.0';
 const CHANGELOG=[
+  {version:'1.5.0',date:'2026-08-06',changes:[
+    "Nouveau : photographier le tableau nutritionnel d'un emballage remplit automatiquement les macros",
+    "Disponible à deux endroits : Aliments > Nouvel aliment, et le scanner quand un produit n'est pas référencé",
+    "Les valeurs par portion et les kJ sont convertis pour 100 g ; une valeur illisible reste vide au lieu d'être inventée"
+  ]},
   {version:'1.4.1',date:'2026-08-06',changes:[
     "Correction automatique de l'historique : les repas déjà enregistrés avec les anciennes valeurs sont recalculés au chargement",
     "Les quantités que tu as ajustées à la main ne sont jamais écrasées"
@@ -3963,6 +3976,10 @@ function newProductForm(code,raison,nom){
     <input id="np-nom" type="text" placeholder="Nom du produit" value="${(nom||'').replace(/"/g,'&quot;')}"
       style="width:100%;min-height:44px;padding:8px 12px;border:1.5px solid #D6D6D1;border-radius:8px;
       font-size:16px;margin-bottom:10px;background:#FAFAF9;outline:none">
+    <button type="button" onclick="startLabelScan(fillScanFormFromLabel)"
+      style="width:100%;min-height:44px;margin-bottom:12px;border-radius:9px;border:1.5px solid var(--accent);background:transparent;color:var(--accent);font-size:13px;font-weight:600;cursor:pointer">
+      Remplir depuis une photo de l'étiquette</button>
+    <div class="label-status" style="display:none;font-size:12px;margin-bottom:10px;text-align:center"></div>
     <div style="font-size:11px;font-weight:700;color:#5E584E;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Pour 100 g</div>
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px">
       ${champ('np-cal','kcal')}${champ('np-p','Prot.')}${champ('np-l','Lip.')}${champ('np-g','Gluc.')}
@@ -4665,6 +4682,69 @@ function speak(text){
 if(window.speechSynthesis){
   window.speechSynthesis.getVoices();
   window.speechSynthesis.onvoiceschanged=()=>window.speechSynthesis.getVoices();
+}
+
+// ── PHOTO D'ÉTIQUETTE NUTRITIONNELLE ─────────────────────────────
+// Lit le tableau nutritionnel d'un emballage et remplit un formulaire existant
+// (celui de la modale Aliments ou celui du scanner). On ne cree pas de 3e
+// formulaire : seule la source des valeurs change.
+let _labelFill=null;
+function startLabelScan(fill){
+  if(!window._isGeminiAllowed||!window._isGeminiAllowed()){
+    showStatus("Lecture d'étiquette réservée au compte autorisé","err");return;
+  }
+  _labelFill=fill;
+  const inp=document.getElementById('label-input');
+  inp.value='';
+  inp.click();
+}
+function onLabelSelected(input){
+  const file=input.files&&input.files[0];
+  if(!file||!_labelFill)return;
+  const reader=new FileReader();
+  reader.onload=e=>analyzeLabelPhoto(e.target.result.split(',')[1],file.type);
+  reader.readAsDataURL(file);
+}
+async function analyzeLabelPhoto(b64,mime){
+  const sts=[...document.querySelectorAll('.label-status')];
+  const say=(txt,col)=>sts.forEach(s=>{s.style.display='block';s.textContent=txt;s.style.color=col;});
+  say('Lecture de l’étiquette…','#5E584E');
+  const prompt=`Tu lis le tableau des valeurs nutritionnelles sur un emballage alimentaire.
+Renvoie UNIQUEMENT du JSON valide, sans markdown :
+{"nom":"...","kcal":0,"proteines":0,"lipides":0,"glucides":0,"par":"100g"}
+Regles imperatives :
+- Les valeurs doivent etre POUR 100 g (ou 100 ml). Si le tableau ne donne que "par portion", convertis en 100 g toi-meme a partir du poids de portion indique, et mets "par":"100g".
+- Si l'energie n'est donnee qu'en kJ, convertis : kcal = kJ / 4,184.
+- "nom" = le nom du produit s'il est lisible, sinon "".
+- Si une valeur est illisible, mets null pour cette valeur (n'invente pas).`;
+  try{
+    const res=await fetch(`${GEMINI_URL}?key=${GEMINI_KEY}`,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({contents:[{parts:[{inline_data:{mime_type:mime,data:b64}},{text:prompt}]}],
+                           generationConfig:{temperature:0.1}})
+    });
+    const d=await res.json();
+    if(!res.ok)throw new Error(d.error?.message||'Erreur Gemini');
+    const txt=d.candidates?.[0]?.content?.parts?.[0]?.text||'';
+    const v=JSON.parse(txt.replace(/```json|```/g,'').trim());
+    if(v.kcal===null||v.kcal===undefined)throw new Error('valeurs illisibles');
+    _labelFill(v);
+    say('Étiquette lue — vérifie les valeurs avant d’enregistrer.','#4C6B3A');
+  }catch(e){
+    say(friendlyError(e),'#C1443B');
+  }
+}
+// Remplit la modale Aliments
+function fillModalFromLabel(v){
+  const set=(id,val)=>{const el=document.getElementById(id);if(el&&val!==null&&val!==undefined)el.value=val;};
+  if(v.nom&&!document.getElementById('mf-name').value)set('mf-name',v.nom);
+  set('mf-cal',v.kcal); set('mf-prot',v.proteines); set('mf-lip',v.lipides); set('mf-gluc',v.glucides);
+}
+// Remplit le formulaire du scanner (produit inconnu)
+function fillScanFormFromLabel(v){
+  const set=(id,val)=>{const el=document.getElementById(id);if(el&&val!==null&&val!==undefined)el.value=val;};
+  if(v.nom&&!document.getElementById('np-nom').value)set('np-nom',v.nom);
+  set('np-cal',v.kcal); set('np-p',v.proteines); set('np-l',v.lipides); set('np-g',v.glucides);
 }
 
 // ── CORRECTIF HISTORIQUE (v1.4.0) ────────────────
