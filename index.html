@@ -681,6 +681,7 @@ body.dark-mode .dark-mode-row span{color:#F2EFE6}
 <!-- MAIN TABS -->
 <div class="main-tabs">
   <button class="main-tab active" onclick="showPage('journal')" id="ptab-journal"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Jour</button>
+  <button class="main-tab" onclick="showPage('repas')" id="ptab-repas"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7a3 3 0 0 0 3 3 3 3 0 0 0 3-3V2"/><path d="M6 12v10"/><path d="M18 2c-1.7 1.4-3 3.9-3 6.5 0 1.9 1.1 3.5 3 3.5Z"/><path d="M18 12v10"/></svg> Repas</button>
   <button class="main-tab" onclick="showPage('stats')" id="ptab-stats"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg> Statistiques</button>
   <button class="main-tab" onclick="showPage('objectifs')" id="ptab-objectifs"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg> Objectifs</button>
   <button class="main-tab" onclick="showPage('etirements')" id="ptab-etirements"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> Étirements</button>
@@ -1084,6 +1085,18 @@ body.dark-mode .dark-mode-row span{color:#F2EFE6}
     <h3>À propos</h3>
     <div id="changelog-list"></div>
   </div>
+</div>
+
+<!-- ══════════════════════════════════════════════ PAGE REPAS -->
+<div id="page-repas" style="display:none">
+  <div class="settings-box">
+    <h3>Ce qu'il te reste aujourd'hui</h3>
+    <div id="repas-restant"></div>
+  </div>
+  <div id="repas-liste"></div>
+  <button onclick="renderMealPlan(true)" id="repas-refresh"
+    style="width:100%;min-height:44px;margin-bottom:20px;border-radius:10px;border:1.5px solid #D6D6D1;background:transparent;color:#5E584E;font-size:14px;font-weight:600;cursor:pointer">
+    Proposer d'autres repas</button>
 </div>
 
 <!-- ══════════════════════════════════════════════ PAGE ÉTIREMENTS -->
@@ -2435,10 +2448,11 @@ function pushEntry(name,w,food){
 
 // ── PAGES ────────────────────────────────────────────────────────
 function showPage(page){
-  ['journal','stats','aliments','objectifs','etirements'].forEach(p=>{
+  ['journal','repas','stats','aliments','objectifs','etirements'].forEach(p=>{
     document.getElementById('page-'+p).style.display=p===page?'block':'none';
     document.getElementById('ptab-'+p).classList.toggle('active',p===page);
   });
+  if(page==='repas')renderMealPlan();
   if(page==='stats'){renderWeekPage();renderMonthPage();renderYearPage();}
   if(page==='aliments')renderDBTable();
   if(page==='objectifs')loadGoalsForm();
@@ -3821,8 +3835,13 @@ function renderThemePicker(activeKey){
 }
 
 // ── VERSION / CHANGELOG ──────────────────────────────────────────
-const APP_VERSION='1.5.0';
+const APP_VERSION='1.6.0';
 const CHANGELOG=[
+  {version:'1.6.0',date:'2026-08-06',changes:[
+    "Nouvel onglet Repas : il compose des repas avec ce qu'il te reste à manger pour atteindre tes objectifs",
+    "S'adapte à l'heure — le matin il propose petit-déjeuner, déjeuner, collation et dîner ; le soir uniquement le dîner",
+    "Chaque repas s'ajoute au journal en un geste, et « Proposer d'autres repas » relance des combinaisons"
+  ]},
   {version:'1.5.0',date:'2026-08-06',changes:[
     "Nouveau : photographier le tableau nutritionnel d'un emballage remplit automatiquement les macros",
     "Disponible à deux endroits : Aliments > Nouvel aliment, et le scanner quand un produit n'est pas référencé",
@@ -4682,6 +4701,131 @@ function speak(text){
 if(window.speechSynthesis){
   window.speechSynthesis.getVoices();
   window.speechSynthesis.onvoiceschanged=()=>window.speechSynthesis.getVoices();
+}
+
+// ── PROPOSITION DE REPAS ─────────────────────────────────────────
+// Repartit ce qu'il reste a manger sur les repas encore a venir, puis compose
+// chaque repas avec des aliments de la base. Entierement local : instantane,
+// gratuit, hors-ligne. Gemini serait un mauvais choix ici (quota ~20/jour et
+// reserve a un seul compte) pour une fonction d'usage quotidien.
+const MEALS=[
+  {nom:'Petit-déjeuner',avant:10,part:25,
+   prot:['Laitiers','Œufs','Sport'],gluc:['Céréales'],fill:['Graisses','Snacks','Fruits']},
+  {nom:'Déjeuner',avant:14,part:35,
+   prot:['Viandes','Poissons','Œufs','Légumineuses'],gluc:['Céréales','Légumineuses'],
+   veg:['Légumes'],fill:['Graisses','Céréales']},
+  {nom:'Collation',avant:18,part:10,
+   prot:['Laitiers','Sport'],gluc:['Fruits','Céréales'],fill:['Graisses','Snacks']},
+  {nom:'Dîner',avant:24,part:30,
+   prot:['Viandes','Poissons','Œufs','Légumineuses'],gluc:['Céréales','Légumineuses'],
+   veg:['Légumes'],fill:['Graisses','Céréales']}
+];
+function todayKeyLocal(){
+  const d=new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+// Un repas reste a venir tant que l'heure courante est avant sa limite.
+function mealsLeft(h){
+  const l=MEALS.filter(m=>h<m.avant);
+  return l.length?l:[MEALS[MEALS.length-1]];
+}
+function pickFood(cats,pref,used){
+  const pool=getFullDB().filter(f=>cats.includes(f.cat)&&f.c>0&&!used.has(f.n));
+  if(!pool.length)return null;
+  // densite de la macro visee par calorie : privilegie les aliments efficaces
+  const score=f=>pref?(f[pref]||0):1;
+  if(pref)pool.sort((a,b)=>score(b)-score(a));
+  const top=pool.slice(0,Math.max(8,Math.ceil(pool.length*0.15)));
+  return top[Math.floor(Math.random()*top.length)];
+}
+// Poids realiste : multiples de la portion vendue si elle existe, sinon pas de 5 g.
+function roundPortion(f,g){
+  if(f.dw){const n=Math.min(4,Math.max(1,Math.round(g/f.dw)));return n*f.dw;}
+  return Math.min(400,Math.max(10,Math.round(g/5)*5));
+}
+function mealTotals(items){
+  return items.reduce((t,i)=>({cal:t.cal+i.cal,p:t.p+i.p,l:t.l+i.l,g:t.g+i.g}),{cal:0,p:0,l:0,g:0});
+}
+function composeMeal(m,target){
+  const used=new Set(),items=[];
+  const push=(f,w)=>{
+    if(!f||!(w>0))return;
+    w=roundPortion(f,w); used.add(f.n);
+    items.push({nm:f.n,w,cal:Math.round(f.c*w/100),p:r1(f.p*w/100),l:r1(f.l*w/100),g:r1(f.g*w/100)});
+  };
+  const reste=()=>target.cal-mealTotals(items).cal;
+  // 1. proteines : dimensionnees sur la cible proteique
+  const fp=pickFood(m.prot,'p',used);
+  // 0.78 : le feculent et le legume apportent aussi des proteines. Viser 100 %
+  //        ici faisait depasser la cible de ~25 %.
+  if(fp&&fp.p>0)push(fp,Math.min(300,target.p*0.78/(fp.p/100)));
+  // 2. legume : portion fixe. Boucher les calories avec des legumes donnait
+  //    des portions absurdes (400 g de carottes).
+  if(m.veg){const fv=pickFood(m.veg,null,used);if(fv)push(fv,150);}
+  // 3. feculent : dimensionne sur les calories restantes
+  const fc=pickFood(m.gluc,'g',used);
+  if(fc&&reste()>40)push(fc,Math.min(350,reste()/(fc.c/100)));
+  // 4. complement dense (noix, huile...) si l'ecart reste important
+  const ff=pickFood(m.fill||[],null,used);
+  if(ff&&reste()>80)push(ff,Math.min(80,reste()/(ff.c/100)));
+  return items;
+}
+function renderMealPlan(){
+  const tk=todayKeyLocal();
+  const G=getGoalsForDate(tk);
+  const log=(data[tk]||[]);
+  const eaten=log.reduce((t,f)=>({cal:t.cal+f.cal,p:t.p+f.p,l:t.l+f.l,g:t.g+f.g}),{cal:0,p:0,l:0,g:0});
+  const rest={cal:G.cal-eaten.cal,p:G.p-eaten.p,l:G.l-eaten.l,g:G.g-eaten.g};
+  const isDark=document.body.classList.contains('dark-mode');
+  const sub=isDark?'#A79E8C':'#5E584E';
+
+  document.getElementById('repas-restant').innerHTML=
+    `<div class="week-stats">
+       <div class="wstat"><div class="wval" style="color:#B8623A">${Math.round(rest.cal)}</div><div class="wlbl">kcal restantes</div></div>
+       <div class="wstat"><div class="wval" style="color:var(--accent)">${r1(rest.p)}g</div><div class="wlbl">Protéines</div></div>
+       <div class="wstat"><div class="wval" style="color:#B8860B">${r1(rest.l)}g</div><div class="wlbl">Lipides</div></div>
+       <div class="wstat"><div class="wval" style="color:#6B9B4F">${r1(rest.g)}g</div><div class="wlbl">Glucides</div></div>
+     </div>`;
+
+  const liste=document.getElementById('repas-liste');
+  if(rest.cal<=50){
+    liste.innerHTML=`<div class="settings-box"><div class="empty">Objectif du jour atteint — rien à ajouter.</div></div>`;
+    window._mealPlan=[];return;
+  }
+  const restants=mealsLeft(new Date().getHours());
+  const somme=restants.reduce((s,m)=>s+m.part,0);
+  window._mealPlan=restants.map(m=>{
+    const f=m.part/somme;
+    const target={cal:rest.cal*f,p:rest.p*f,l:rest.l*f,g:rest.g*f};
+    return {nom:m.nom,target,items:composeMeal(m,target)};
+  });
+
+  liste.innerHTML=window._mealPlan.map((r,i)=>{
+    const t=mealTotals(r.items);
+    const lignes=r.items.map(it=>
+      `<div style="display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid ${isDark?'#2B2F3B':'#EEEEEB'};font-size:13px">
+         <span>${it.nm}</span><span style="color:${sub};white-space:nowrap">${it.w} g · ${it.cal} kcal</span>
+       </div>`).join('')||`<div class="empty">Pas d'aliment adapté trouvé.</div>`;
+    return `<div class="settings-box">
+      <h3>${r.nom} <span style="font-size:12px;font-weight:400;color:${sub}">cible ${Math.round(r.target.cal)} kcal · P ${r1(r.target.p)}g</span></h3>
+      ${lignes}
+      <div style="display:flex;justify-content:space-between;margin-top:10px;font-size:12px;font-weight:700;color:${sub}">
+        <span>TOTAL PROPOSÉ</span>
+        <span>${t.cal} kcal · P ${r1(t.p)}g · L ${r1(t.l)}g · G ${r1(t.g)}g</span>
+      </div>
+      <button onclick="addMealToJournal(${i})" style="width:100%;min-height:44px;margin-top:12px;border-radius:9px;border:none;background:var(--accent);color:var(--accent-text-on);font-size:14px;font-weight:700;cursor:pointer">
+        Ajouter au journal</button>
+    </div>`;
+  }).join('');
+}
+function addMealToJournal(i){
+  const r=(window._mealPlan||[])[i];
+  if(!r||!r.items.length)return;
+  const tk=todayKeyLocal();
+  if(!data[tk])data[tk]=[];
+  r.items.forEach(it=>data[tk].push({nm:it.nm,w:it.w,cal:it.cal,p:it.p,l:it.l,g:it.g}));
+  saveData();render();renderMealPlan();
+  showStatus(r.nom+' ajouté ✓','ok');
 }
 
 // ── PHOTO D'ÉTIQUETTE NUTRITIONNELLE ─────────────────────────────
