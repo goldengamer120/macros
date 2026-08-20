@@ -3838,8 +3838,12 @@ function renderThemePicker(activeKey){
 }
 
 // ── VERSION / CHANGELOG ──────────────────────────────────────────
-const APP_VERSION='1.7.0';
+const APP_VERSION='1.7.1';
 const CHANGELOG=[
+  {version:'1.7.1',date:'2026-08-06',changes:[
+    "Analyse photo, voix et étiquette : en cas de « trop de demandes », l'app relance automatiquement jusqu'à 3 fois",
+    "Le compte à rebours de la prochaine tentative est affiché, et le délai imposé par Google est respecté"
+  ]},
   {version:'1.7.0',date:'2026-08-06',changes:[
     "Onglet Repas : les propositions s'inspirent maintenant de ce que tu as mangé les 30 derniers jours",
     "Les aliments issus de tes habitudes sont marqués « habituel » ; sans historique, toute la base est utilisée",
@@ -4157,14 +4161,42 @@ function saveScanToDB(){
 const GEMINI_KEY='AQ.Ab8RN6JLOH6evuMTTx__yMMto-h-Qd2DtWpPf01qPrptI6ARbw';
 const GEMINI_URL='https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent';
 
+// Appel Gemini avec relance automatique.
+// Le palier gratuit limite le nombre de requetes par minute : on recoit alors un
+// 429 alors qu'un simple delai suffirait. On retente donc 3 fois avec un delai
+// croissant, en respectant le retryDelay quand l'API l'indique. Les surcharges
+// serveur (503) suivent le meme chemin. Les autres erreurs remontent aussitot.
+async function geminiFetch(body,onWait){
+  const delais=[2000,5000,10000];
+  for(let essai=0;;essai++){
+    const res=await fetch(`${GEMINI_URL}?key=${GEMINI_KEY}`,{
+      method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)
+    });
+    const d=await res.json().catch(()=>({}));
+    if(res.ok)return d;
+    const msg=(d.error&&d.error.message)||'';
+    const code=(d.error&&d.error.code)||res.status;
+    const surcharge=code===429||code===503||/quota|exhaust|overload|unavailable|rate/i.test(msg);
+    if(!surcharge||essai>=delais.length)throw new Error(msg||('Erreur '+code));
+    let attente=delais[essai];
+    const info=((d.error&&d.error.details)||[]).find(x=>x['@type']&&/RetryInfo/i.test(x['@type']));
+    if(info&&info.retryDelay){
+      const s=parseFloat(info.retryDelay);
+      if(s>0)attente=Math.max(attente,s*1000);
+    }
+    if(onWait)onWait(essai+1,delais.length,Math.ceil(attente/1000));
+    await new Promise(r=>setTimeout(r,attente));
+  }
+}
+
 // Traduit une erreur technique en message clair + piste de resolution.
 function friendlyError(e){
   const raw=(e&&e.message?e.message:String(e))||'';
   const t=raw.toLowerCase();
   if(t.includes('failed to fetch')||t.includes('networkerror')||t.includes('load failed'))
     return "Connexion impossible. Vérifie ta connexion internet, puis réessaie.";
-  if(t.includes('429')||t.includes('quota')||t.includes('resource_exhausted'))
-    return "Quota d'analyses atteint pour aujourd'hui (environ 20 par jour). Réessaie demain, ou saisis les macros dans l'onglet Manuel.";
+  if(t.includes('429')||t.includes('quota')||t.includes('exhaust')||t.includes('rate limit'))
+    return "Trop de demandes : plusieurs tentatives ont échoué. Attends une minute et réessaie, ou saisis les macros dans l'onglet Manuel.";
   if(t.includes('403')||t.includes('permission')||t.includes('api key')||t.includes('unauthorized'))
     return "Accès à l'analyse refusé. Reconnecte-toi avec le compte autorisé, ou passe par l'onglet Manuel.";
   if(t.includes('500')||t.includes('503')||t.includes('unavailable')||t.includes('overloaded'))
@@ -4230,19 +4262,13 @@ Réponds UNIQUEMENT en JSON valide, sans markdown, sans texte autour :
 Sois précis et réaliste dans tes estimations.`;
 
   try{
-    const res=await fetch(`${GEMINI_URL}?key=${GEMINI_KEY}`,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        contents:[{parts:[
-          {inline_data:{mime_type:photoMime,data:photoBase64}},
-          {text:prompt}
-        ]}],
-        generationConfig:{temperature:0.1}
-      })
-    });
-    const d=await res.json();
-    if(!res.ok)throw new Error(d.error?.message||'Erreur Gemini');
+    const d=await geminiFetch(
+      {contents:[{parts:[{inline_data:{mime_type:photoMime,data:photoBase64}},{text:prompt}]}],
+       generationConfig:{temperature:0.1}},
+      (n,max,s)=>{document.getElementById('photo-results').innerHTML=
+        `<div style="text-align:center;padding:20px;color:#5E584E;font-size:13px">`+
+        `<div style="width:28px;height:28px;border:3px solid #D6D6D1;border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 10px"></div>`+
+        `Trop de demandes — nouvelle tentative ${n}/${max} dans ${s} s…</div>`;});
     const text=d.candidates?.[0]?.content?.parts?.[0]?.text||'';
     const clean=text.replace(/```json|```/g,'').trim();
     const parsed=JSON.parse(clean);
@@ -4333,16 +4359,11 @@ Réponds UNIQUEMENT en JSON valide, sans markdown, sans texte autour :
 {"aliments":[{"nom":"...","quantite_g":150,"calories":200,"proteines_g":25,"lipides_g":8,"glucides_g":10}]}`;
 
   try{
-    const res=await fetch(`${GEMINI_URL}?key=${GEMINI_KEY}`,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        contents:[{parts:[{text:prompt}]}],
-        generationConfig:{temperature:0.1}
-      })
-    });
-    const d=await res.json();
-    if(!res.ok)throw new Error(d.error?.message||'Erreur Gemini');
+    const d=await geminiFetch(
+      {contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:0.1}},
+      (n,max,s)=>{resultsEl.innerHTML=
+        `<div style="text-align:center;padding:20px;color:#5E584E;font-size:13px">`+
+        `Trop de demandes — nouvelle tentative ${n}/${max} dans ${s} s…</div>`;});
     const rawText=d.candidates?.[0]?.content?.parts?.[0]?.text||'';
     const clean=rawText.replace(/```json|```/g,'').trim();
     const parsed=JSON.parse(clean);
@@ -4895,13 +4916,10 @@ Regles imperatives :
 - "nom" = le nom du produit s'il est lisible, sinon "".
 - Si une valeur est illisible, mets null pour cette valeur (n'invente pas).`;
   try{
-    const res=await fetch(`${GEMINI_URL}?key=${GEMINI_KEY}`,{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({contents:[{parts:[{inline_data:{mime_type:mime,data:b64}},{text:prompt}]}],
-                           generationConfig:{temperature:0.1}})
-    });
-    const d=await res.json();
-    if(!res.ok)throw new Error(d.error?.message||'Erreur Gemini');
+    const d=await geminiFetch(
+      {contents:[{parts:[{inline_data:{mime_type:mime,data:b64}},{text:prompt}]}],
+       generationConfig:{temperature:0.1}},
+      (n,max,s)=>say(`Trop de demandes — nouvelle tentative ${n}/${max} dans ${s} s…`,'#B8860B'));
     const txt=d.candidates?.[0]?.content?.parts?.[0]?.text||'';
     const v=JSON.parse(txt.replace(/```json|```/g,'').trim());
     if(v.kcal===null||v.kcal===undefined)throw new Error('valeurs illisibles');
