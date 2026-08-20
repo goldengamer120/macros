@@ -2471,13 +2471,16 @@ function setMode(mode){
 
 // ── SEARCH ───────────────────────────────────────────────────────
 // Categories mises en avant : le reste est replie derriere « Plus… ».
-const CAT_FREQUENTES=['Viandes','Céréales','Légumes','Fruits','Laitiers','Snacks'];
+// L'ordre de cette liste est celui affiche, il ne suit pas l'ordre de BASE_DB.
+const CAT_FREQUENTES=['Œufs','Viandes','Céréales','Légumes','Fruits','Laitiers','Snacks'];
 let catFiltersExpanded=false;
 function buildCatFilters(){
   const el=document.getElementById('cat-filters');
   const keys=getCatKeys();
   // la categorie active reste toujours visible, meme si elle est dans le repli
-  const visibles=catFiltersExpanded?keys:keys.filter(c=>CAT_FREQUENTES.includes(c)||c===selectedCat);
+  const rang=c=>{const i=CAT_FREQUENTES.indexOf(c);return i<0?99:i;};
+  const visibles=catFiltersExpanded?keys
+    :keys.filter(c=>CAT_FREQUENTES.includes(c)||c===selectedCat).sort((a,b)=>rang(a)-rang(b));
   const caches=keys.length-visibles.length;
   // data-cat + delegation : injecter le nom dans un onclick casse les categories
   // contenant une apostrophe (ex. « McDonald's »).
@@ -3835,8 +3838,13 @@ function renderThemePicker(activeKey){
 }
 
 // ── VERSION / CHANGELOG ──────────────────────────────────────────
-const APP_VERSION='1.6.0';
+const APP_VERSION='1.7.0';
 const CHANGELOG=[
+  {version:'1.7.0',date:'2026-08-06',changes:[
+    "Onglet Repas : les propositions s'inspirent maintenant de ce que tu as mangé les 30 derniers jours",
+    "Les aliments issus de tes habitudes sont marqués « habituel » ; sans historique, toute la base est utilisée",
+    "Filtres d'aliments : la catégorie Œufs passe en premier"
+  ]},
   {version:'1.6.0',date:'2026-08-06',changes:[
     "Nouvel onglet Repas : il compose des repas avec ce qu'il te reste à manger pour atteindre tes objectifs",
     "S'adapte à l'heure — le matin il propose petit-déjeuner, déjeuner, collation et dîner ; le soir uniquement le dîner",
@@ -4720,6 +4728,19 @@ const MEALS=[
    prot:['Viandes','Poissons','Œufs','Légumineuses'],gluc:['Céréales','Légumineuses'],
    veg:['Légumes'],fill:['Graisses','Céréales']}
 ];
+// Aliments reellement consommes sur les 30 derniers jours, avec leur frequence.
+// Sert a proposer des repas ressemblant aux habitudes plutot qu'a piocher
+// n'importe quoi dans les 1000 aliments de la base.
+function recentFoodCounts(days){
+  const cut=new Date(); cut.setHours(0,0,0,0); cut.setDate(cut.getDate()-(days||30));
+  const counts={};
+  Object.entries(data).forEach(([k,log])=>{
+    const d=new Date(k+'T12:00:00');
+    if(isNaN(d)||d<cut)return;
+    (log||[]).forEach(e=>{if(e&&e.nm)counts[e.nm]=(counts[e.nm]||0)+1;});
+  });
+  return counts;
+}
 function todayKeyLocal(){
   const d=new Date();
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
@@ -4729,10 +4750,17 @@ function mealsLeft(h){
   const l=MEALS.filter(m=>h<m.avant);
   return l.length?l:[MEALS[MEALS.length-1]];
 }
-function pickFood(cats,pref,used){
+function pickFood(cats,pref,used,recent){
   const pool=getFullDB().filter(f=>cats.includes(f.cat)&&f.c>0&&!used.has(f.n));
   if(!pool.length)return null;
-  // densite de la macro visee par calorie : privilegie les aliments efficaces
+  // 1er choix : ce que l'utilisateur mange vraiment, le plus frequent d'abord
+  const habituels=recent?pool.filter(f=>recent[f.n]):[];
+  if(habituels.length){
+    habituels.sort((a,b)=>recent[b.n]-recent[a.n]);
+    const top=habituels.slice(0,6);
+    return top[Math.floor(Math.random()*top.length)];
+  }
+  // repli : densite de la macro visee, pour 100 g
   const score=f=>pref?(f[pref]||0):1;
   if(pref)pool.sort((a,b)=>score(b)-score(a));
   const top=pool.slice(0,Math.max(8,Math.ceil(pool.length*0.15)));
@@ -4746,7 +4774,7 @@ function roundPortion(f,g){
 function mealTotals(items){
   return items.reduce((t,i)=>({cal:t.cal+i.cal,p:t.p+i.p,l:t.l+i.l,g:t.g+i.g}),{cal:0,p:0,l:0,g:0});
 }
-function composeMeal(m,target){
+function composeMeal(m,target,recent){
   const used=new Set(),items=[];
   const push=(f,w)=>{
     if(!f||!(w>0))return;
@@ -4755,18 +4783,18 @@ function composeMeal(m,target){
   };
   const reste=()=>target.cal-mealTotals(items).cal;
   // 1. proteines : dimensionnees sur la cible proteique
-  const fp=pickFood(m.prot,'p',used);
+  const fp=pickFood(m.prot,'p',used,recent);
   // 0.78 : le feculent et le legume apportent aussi des proteines. Viser 100 %
   //        ici faisait depasser la cible de ~25 %.
   if(fp&&fp.p>0)push(fp,Math.min(300,target.p*0.78/(fp.p/100)));
   // 2. legume : portion fixe. Boucher les calories avec des legumes donnait
   //    des portions absurdes (400 g de carottes).
-  if(m.veg){const fv=pickFood(m.veg,null,used);if(fv)push(fv,150);}
+  if(m.veg){const fv=pickFood(m.veg,null,used,recent);if(fv)push(fv,150);}
   // 3. feculent : dimensionne sur les calories restantes
-  const fc=pickFood(m.gluc,'g',used);
+  const fc=pickFood(m.gluc,'g',used,recent);
   if(fc&&reste()>40)push(fc,Math.min(350,reste()/(fc.c/100)));
   // 4. complement dense (noix, huile...) si l'ecart reste important
-  const ff=pickFood(m.fill||[],null,used);
+  const ff=pickFood(m.fill||[],null,used,recent);
   if(ff&&reste()>80)push(ff,Math.min(80,reste()/(ff.c/100)));
   return items;
 }
@@ -4792,19 +4820,24 @@ function renderMealPlan(){
     liste.innerHTML=`<div class="settings-box"><div class="empty">Objectif du jour atteint — rien à ajouter.</div></div>`;
     window._mealPlan=[];return;
   }
+  const recent=recentFoodCounts(30);
+  const nbConnus=Object.keys(recent).length;
   const restants=mealsLeft(new Date().getHours());
   const somme=restants.reduce((s,m)=>s+m.part,0);
   window._mealPlan=restants.map(m=>{
     const f=m.part/somme;
     const target={cal:rest.cal*f,p:rest.p*f,l:rest.l*f,g:rest.g*f};
-    return {nom:m.nom,target,items:composeMeal(m,target)};
+    return {nom:m.nom,target,items:composeMeal(m,target,recent)};
   });
 
-  liste.innerHTML=window._mealPlan.map((r,i)=>{
+  const source=nbConnus
+    ? `<div style="font-size:12px;color:${sub};margin-bottom:12px">Inspiré de tes 30 derniers jours — ${nbConnus} aliment(s) déjà consommé(s).</div>`
+    : `<div style="font-size:12px;color:${sub};margin-bottom:12px">Aucun historique sur 30 jours : propositions basées sur toute la base.</div>`;
+  liste.innerHTML=source+window._mealPlan.map((r,i)=>{
     const t=mealTotals(r.items);
     const lignes=r.items.map(it=>
       `<div style="display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid ${isDark?'#2B2F3B':'#EEEEEB'};font-size:13px">
-         <span>${it.nm}</span><span style="color:${sub};white-space:nowrap">${it.w} g · ${it.cal} kcal</span>
+         <span>${it.nm}${recent[it.nm]?' <span style="font-size:10px;opacity:.7">· habituel</span>':''}</span><span style="color:${sub};white-space:nowrap">${it.w} g · ${it.cal} kcal</span>
        </div>`).join('')||`<div class="empty">Pas d'aliment adapté trouvé.</div>`;
     return `<div class="settings-box">
       <h3>${r.nom} <span style="font-size:12px;font-weight:400;color:${sub}">cible ${Math.round(r.target.cal)} kcal · P ${r1(r.target.p)}g</span></h3>
