@@ -671,7 +671,7 @@ body.dark-mode .dark-mode-row span{color:#F2EFE6}
 <div class="save-status" id="save-status"></div>
 
 <!-- Toast d'annulation de suppression (zone pouce) -->
-<input type="file" id="label-input" accept="image/*" capture="environment" style="display:none" onchange="onLabelSelected(this)">
+<input type="file" id="label-input" accept="image/*" style="display:none" onchange="onLabelSelected(this)">
 
 <div id="undo-toast" role="status" aria-live="polite">
   <span id="undo-toast-msg"></span>
@@ -731,7 +731,7 @@ body.dark-mode .dark-mode-row span{color:#F2EFE6}
       <div id="gemini-photo-lock" style="display:none;padding:12px 14px;background:#F5E7C6;border-radius:10px;font-size:12px;color:#6B4A0A;margin-bottom:12px;align-items:center;gap:8px"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><span>Analyse photo réservée au propriétaire de l'application.</span>
       </div>
       <div id="photo-drop-zone" style="border:2px dashed #D6D6D1;border-radius:12px;padding:24px;text-align:center;cursor:pointer;position:relative;transition:.2s;background:#FAFAF9" onclick="document.getElementById('photo-input').click()">
-        <input type="file" id="photo-input" accept="image/*" capture="environment" style="display:none" onchange="onPhotoSelected(this)">
+        <input type="file" id="photo-input" accept="image/*" style="display:none" onchange="onPhotoSelected(this)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:32px;height:32px;margin-bottom:8px;color:#6A6459"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2Z"/><circle cx="12" cy="13" r="4"/></svg>
         <div style="font-size:14px;font-weight:500;color:#5C5440;margin-bottom:4px">Prends ou importe une photo de ton repas</div>
         <div style="font-size:12px;color:#6A6459">Analysé par Google Gemini (gratuit)</div>
@@ -3838,8 +3838,13 @@ function renderThemePicker(activeKey){
 }
 
 // ── VERSION / CHANGELOG ──────────────────────────────────────────
-const APP_VERSION='1.7.2';
+const APP_VERSION='1.8.0';
 const CHANGELOG=[
+  {version:'1.8.0',date:'2026-08-06',changes:[
+    "Photo : tu peux enfin choisir une image depuis la photothèque du téléphone, pas seulement l'appareil",
+    "Clé saturée : l'analyse relance maintenant sans limite jusqu'à passer, avec un bouton Annuler",
+    "Chaque aliment détecté par photo ou par voix peut être ajouté à ta base en un geste"
+  ]},
   {version:'1.7.2',date:'2026-08-06',changes:[
     "Boissons et desserts de fast-food corrigés : un Coca McDo moyen comptait 720 kcal au lieu de 180",
     "Concerne aussi les milkshakes, McFlurry, sundaes et l'épi de maïs KFC — 9 aliments au total",
@@ -4171,9 +4176,17 @@ const GEMINI_URL='https://generativelanguage.googleapis.com/v1beta/models/gemini
 // 429 alors qu'un simple delai suffirait. On retente donc 3 fois avec un delai
 // croissant, en respectant le retryDelay quand l'API l'indique. Les surcharges
 // serveur (503) suivent le meme chemin. Les autres erreurs remontent aussitot.
+let _geminiAnnule=false;
+function annulerGemini(){_geminiAnnule=true;}
+// Relance tant que Gemini repond « trop de demandes ». Pas de nombre d'essais
+// maximum : le palier gratuit se libere au bout d'une minute, abandonner avant
+// n'a aucun interet. Le delai plafonne a 15 s et l'utilisateur garde la main
+// via annulerGemini(). Les erreurs sans rapport avec le debit remontent aussitot.
 async function geminiFetch(body,onWait){
-  const delais=[2000,5000,10000];
+  _geminiAnnule=false;
+  const paliers=[2000,5000,10000,15000];
   for(let essai=0;;essai++){
+    if(_geminiAnnule)throw new Error('Analyse annulée');
     const res=await fetch(`${GEMINI_URL}?key=${GEMINI_KEY}`,{
       method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)
     });
@@ -4182,15 +4195,16 @@ async function geminiFetch(body,onWait){
     const msg=(d.error&&d.error.message)||'';
     const code=(d.error&&d.error.code)||res.status;
     const surcharge=code===429||code===503||/quota|exhaust|overload|unavailable|rate/i.test(msg);
-    if(!surcharge||essai>=delais.length)throw new Error(msg||('Erreur '+code));
-    let attente=delais[essai];
+    if(!surcharge)throw new Error(msg||('Erreur '+code));
+    let attente=paliers[Math.min(essai,paliers.length-1)];
     const info=((d.error&&d.error.details)||[]).find(x=>x['@type']&&/RetryInfo/i.test(x['@type']));
-    if(info&&info.retryDelay){
-      const s=parseFloat(info.retryDelay);
-      if(s>0)attente=Math.max(attente,s*1000);
+    if(info&&info.retryDelay){const s=parseFloat(info.retryDelay);if(s>0)attente=Math.max(attente,s*1000);}
+    if(onWait)onWait(essai+1,Math.ceil(attente/1000));
+    // attente fractionnee pour reagir vite a une annulation
+    for(let t=0;t<attente;t+=250){
+      if(_geminiAnnule)throw new Error('Analyse annulée');
+      await new Promise(r=>setTimeout(r,250));
     }
-    if(onWait)onWait(essai+1,delais.length,Math.ceil(attente/1000));
-    await new Promise(r=>setTimeout(r,attente));
   }
 }
 
@@ -4198,6 +4212,7 @@ async function geminiFetch(body,onWait){
 function friendlyError(e){
   const raw=(e&&e.message?e.message:String(e))||'';
   const t=raw.toLowerCase();
+  if(t.includes('annul'))return "Analyse annulée.";
   if(t.includes('failed to fetch')||t.includes('networkerror')||t.includes('load failed'))
     return "Connexion impossible. Vérifie ta connexion internet, puis réessaie.";
   if(t.includes('429')||t.includes('quota')||t.includes('exhaust')||t.includes('rate limit'))
@@ -4270,10 +4285,10 @@ Sois précis et réaliste dans tes estimations.`;
     const d=await geminiFetch(
       {contents:[{parts:[{inline_data:{mime_type:photoMime,data:photoBase64}},{text:prompt}]}],
        generationConfig:{temperature:0.1}},
-      (n,max,s)=>{document.getElementById('photo-results').innerHTML=
+      (n,s)=>{document.getElementById('photo-results').innerHTML=
         `<div style="text-align:center;padding:20px;color:#5E584E;font-size:13px">`+
         `<div style="width:28px;height:28px;border:3px solid #D6D6D1;border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 10px"></div>`+
-        `Trop de demandes — nouvelle tentative ${n}/${max} dans ${s} s…</div>`;});
+        `Clé saturée — nouvelle tentative n°${n} dans ${s} s…<br><button type=\"button\" onclick=\"annulerGemini()\" style=\"margin-top:10px;min-height:44px;padding:0 18px;border-radius:9px;border:1.5px solid #D6D6D1;background:transparent;color:#5E584E;font-size:13px;font-weight:600;cursor:pointer\">Annuler</button></div>`;});
     const text=d.candidates?.[0]?.content?.parts?.[0]?.text||'';
     const clean=text.replace(/```json|```/g,'').trim();
     const parsed=JSON.parse(clean);
@@ -4288,6 +4303,29 @@ Sois précis et réaliste dans tes estimations.`;
   lbl.textContent='Analyser avec Gemini';
 }
 
+// Enregistre un aliment detecte (photo ou voix) dans la base personnelle.
+// Gemini renvoie les valeurs POUR LA PORTION vue ; la base attend du pour 100 g,
+// d'ou la division par quantite_g/100 -- l'oubli de cette conversion est la
+// source de toutes les incoherences caloriques deja corrigees.
+function addDetectedToDB(source,i,btnId){
+  const a=((source==='voice'?window._voiceAliments:window._photoAliments)||[])[i];
+  if(!a)return;
+  const nom=(a.nom||'').trim();
+  const w=parseFloat(a.quantite_g)||0;
+  if(!nom){showStatus('Nom manquant','err');return;}
+  if(w<=0){showStatus('Quantité inconnue : ajoute-le via Aliments','err');return;}
+  if(getFullDB().some(f=>f.n.toLowerCase()===nom.toLowerCase())){showStatus('Déjà dans la base','err');return;}
+  const f=100/w;
+  customFoods.push({n:nom,cat:'Scannés',
+    c:Math.round((a.calories||0)*f),p:r1((a.proteines_g||0)*f),
+    l:r1((a.lipides_g||0)*f),g:r1((a.glucides_g||0)*f)});
+  localStorage.setItem(LS_CUSTOM,JSON.stringify(customFoods));
+  if(window.firebaseSave)window.firebaseSave(getStatePayload());
+  buildCatFilters();
+  const b=document.getElementById(btnId);
+  if(b){b.textContent='✓ en base';b.disabled=true;b.style.opacity='.6';}
+  showStatus('« '+nom+' » ajouté à la base ✓','ok');
+}
 function renderPhotoResults(aliments){
   if(!aliments||!aliments.length){
     document.getElementById('photo-results').innerHTML='<div style="color:#5E584E;font-size:13px;padding:12px">Aucun aliment détecté. Essaie avec une photo plus nette.</div>';
@@ -4305,7 +4343,10 @@ function renderPhotoResults(aliments){
         <div style="font-size:13px;font-weight:600;color:${textMain};margin-bottom:2px">${a.nom}</div>
         <div style="font-size:11px;color:${textSub}">${a.quantite_g}g · ${a.calories} kcal · P ${a.proteines_g}g · L ${a.lipides_g}g · G ${a.glucides_g}g</div>
       </div>
-      <button onclick="addPhotoItem(${i})" id="pbtn-${i}" style="padding:6px 12px;border-radius:8px;border:none;background:var(--accent);color:var(--accent-text-on);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">+ Ajouter</button>
+      <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">
+        <button onclick="addPhotoItem(${i})" id="pbtn-${i}" style="min-height:44px;padding:0 12px;border-radius:8px;border:none;background:var(--accent);color:var(--accent-text-on);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">+ Journal</button>
+        <button onclick="addDetectedToDB('photo',${i},'pdb-${i}')" id="pdb-${i}" style="min-height:44px;padding:0 12px;border-radius:8px;border:1.5px solid var(--accent);background:transparent;color:var(--accent);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">+ Base</button>
+      </div>
     </div>`).join('');
 
   html+=`<button onclick="addAllPhotoItems()" style="width:100%;padding:10px;border-radius:9px;border:2px solid var(--accent);background:transparent;color:var(--accent);font-size:13px;font-weight:600;cursor:pointer;margin-top:4px">✓ Tout ajouter (${aliments.length} aliment${aliments.length>1?'s':''})</button>`;
@@ -4366,9 +4407,9 @@ Réponds UNIQUEMENT en JSON valide, sans markdown, sans texte autour :
   try{
     const d=await geminiFetch(
       {contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:0.1}},
-      (n,max,s)=>{resultsEl.innerHTML=
+      (n,s)=>{resultsEl.innerHTML=
         `<div style="text-align:center;padding:20px;color:#5E584E;font-size:13px">`+
-        `Trop de demandes — nouvelle tentative ${n}/${max} dans ${s} s…</div>`;});
+        `Clé saturée — nouvelle tentative n°${n} dans ${s} s…<br><button type=\"button\" onclick=\"annulerGemini()\" style=\"margin-top:10px;min-height:44px;padding:0 18px;border-radius:9px;border:1.5px solid #D6D6D1;background:transparent;color:#5E584E;font-size:13px;font-weight:600;cursor:pointer\">Annuler</button></div>`;});
     const rawText=d.candidates?.[0]?.content?.parts?.[0]?.text||'';
     const clean=rawText.replace(/```json|```/g,'').trim();
     const parsed=JSON.parse(clean);
@@ -4397,7 +4438,10 @@ function renderVoiceGeminiResults(aliments){
         <div style="font-size:13px;font-weight:600;color:${textMain};margin-bottom:2px">${a.nom}</div>
         <div style="font-size:11px;color:${textSub}">${a.quantite_g}g · ${a.calories} kcal · P ${a.proteines_g}g · L ${a.lipides_g}g · G ${a.glucides_g}g</div>
       </div>
-      <button onclick="addVoiceItem(${i})" id="vbtn-${i}" style="padding:6px 12px;border-radius:8px;border:none;background:var(--accent);color:var(--accent-text-on);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">+ Ajouter</button>
+      <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">
+        <button onclick="addVoiceItem(${i})" id="vbtn-${i}" style="min-height:44px;padding:0 12px;border-radius:8px;border:none;background:var(--accent);color:var(--accent-text-on);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">+ Journal</button>
+        <button onclick="addDetectedToDB('voice',${i},'vdb-${i}')" id="vdb-${i}" style="min-height:44px;padding:0 12px;border-radius:8px;border:1.5px solid var(--accent);background:transparent;color:var(--accent);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">+ Base</button>
+      </div>
     </div>`).join('');
 
   html+=`<button onclick="addAllVoiceItems()" style="width:100%;padding:10px;border-radius:9px;border:2px solid var(--accent);background:transparent;color:var(--accent);font-size:13px;font-weight:600;cursor:pointer;margin-top:4px">✓ Tout ajouter (${aliments.length} aliment${aliments.length>1?'s':''})</button>`;
@@ -4924,7 +4968,7 @@ Regles imperatives :
     const d=await geminiFetch(
       {contents:[{parts:[{inline_data:{mime_type:mime,data:b64}},{text:prompt}]}],
        generationConfig:{temperature:0.1}},
-      (n,max,s)=>say(`Trop de demandes — nouvelle tentative ${n}/${max} dans ${s} s…`,'#B8860B'));
+      (n,s)=>say(`Clé saturée — nouvelle tentative n°${n} dans ${s} s…`,'#B8860B'));
     const txt=d.candidates?.[0]?.content?.parts?.[0]?.text||'';
     const v=JSON.parse(txt.replace(/```json|```/g,'').trim());
     if(v.kcal===null||v.kcal===undefined)throw new Error('valeurs illisibles');
