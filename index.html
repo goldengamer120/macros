@@ -3838,8 +3838,12 @@ function renderThemePicker(activeKey){
 }
 
 // ── VERSION / CHANGELOG ──────────────────────────────────────────
-const APP_VERSION='1.8.0';
+const APP_VERSION='1.8.1';
 const CHANGELOG=[
+  {version:'1.8.1',date:'2026-08-24',changes:[
+    "L'analyse photo ne reste plus bloquée sur « Gemini analyse ton repas » : l'image est réduite avant l'envoi",
+    "Un envoi qui cale est détecté au bout de 60 s et relancé, au lieu de tourner indéfiniment"
+  ]},
   {version:'1.8.0',date:'2026-08-06',changes:[
     "Photo : tu peux enfin choisir une image depuis la photothèque du téléphone, pas seulement l'appareil",
     "Clé saturée : l'analyse relance maintenant sans limite jusqu'à passer, avec un bouton Annuler",
@@ -4182,15 +4186,38 @@ function annulerGemini(){_geminiAnnule=true;}
 // maximum : le palier gratuit se libere au bout d'une minute, abandonner avant
 // n'a aucun interet. Le delai plafonne a 15 s et l'utilisateur garde la main
 // via annulerGemini(). Les erreurs sans rapport avec le debit remontent aussitot.
+// Attente découpée : l'annulation est prise en compte en moins de 250 ms.
+async function attendre(ms){
+  for(let t=0;t<ms;t+=250){
+    if(_geminiAnnule)throw new Error('Analyse annulée');
+    await new Promise(r=>setTimeout(r,250));
+  }
+}
 async function geminiFetch(body,onWait){
   _geminiAnnule=false;
   const paliers=[2000,5000,10000,15000];
   for(let essai=0;;essai++){
     if(_geminiAnnule)throw new Error('Analyse annulée');
-    const res=await fetch(`${GEMINI_URL}?key=${GEMINI_KEY}`,{
-      method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)
-    });
-    const d=await res.json().catch(()=>({}));
+    // fetch n'abandonne jamais tout seul : sans ça un envoi qui cale laisse
+    // le spinner tourner indéfiniment, sans erreur ni nouvelle tentative.
+    const ctrl=new AbortController();
+    const minuteur=setTimeout(()=>ctrl.abort(),60000);
+    let res,d;
+    try{
+      res=await fetch(`${GEMINI_URL}?key=${GEMINI_KEY}`,{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(body),signal:ctrl.signal
+      });
+      d=await res.json().catch(()=>({}));
+    }catch(err){
+      clearTimeout(minuteur);
+      if(_geminiAnnule)throw new Error('Analyse annulée');
+      // délai dépassé ou réseau coupé : on retente, comme pour une saturation
+      if(onWait)onWait(essai+1,5);
+      await attendre(5000);
+      continue;
+    }
+    clearTimeout(minuteur);
     if(res.ok)return d;
     const msg=(d.error&&d.error.message)||'';
     const code=(d.error&&d.error.code)||res.status;
@@ -4201,10 +4228,7 @@ async function geminiFetch(body,onWait){
     if(info&&info.retryDelay){const s=parseFloat(info.retryDelay);if(s>0)attente=Math.max(attente,s*1000);}
     if(onWait)onWait(essai+1,Math.ceil(attente/1000));
     // attente fractionnee pour reagir vite a une annulation
-    for(let t=0;t<attente;t+=250){
-      if(_geminiAnnule)throw new Error('Analyse annulée');
-      await new Promise(r=>setTimeout(r,250));
-    }
+    await attendre(attente);
   }
 }
 
@@ -4228,22 +4252,54 @@ function friendlyError(e){
 
 let photoBase64=null, photoMime=null;
 
-function onPhotoSelected(input){
+// Reduit l'image avant l'envoi. Une photo de photothèque fait 5 a 10 Mo,
+// soit ~13 Mo une fois en base64 : l'envoi cale sur reseau mobile et l'analyse
+// semble tourner dans le vide. 1024 px suffisent largement a Gemini pour
+// reconnaitre des aliments ou lire une etiquette.
+function compressImage(file,maxPx,quality){
+  return new Promise((resolve,reject)=>{
+    const url=URL.createObjectURL(file);
+    const img=new Image();
+    img.onload=()=>{
+      URL.revokeObjectURL(url);
+      let w=img.naturalWidth,h=img.naturalHeight;
+      if(!w||!h){reject(new Error('Image illisible'));return;}
+      const r=Math.min(1,(maxPx||1024)/Math.max(w,h));
+      w=Math.max(1,Math.round(w*r)); h=Math.max(1,Math.round(h*r));
+      const cv=document.createElement('canvas');
+      cv.width=w; cv.height=h;
+      cv.getContext('2d').drawImage(img,0,0,w,h);
+      const dataUrl=cv.toDataURL('image/jpeg',quality||0.8);
+      resolve({dataUrl,base64:dataUrl.split(',')[1],mime:'image/jpeg'});
+    };
+    img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('Image illisible'));};
+    img.src=url;
+  });
+}
+// Repli si le navigateur ne sait pas decoder le format (certains HEIC).
+function readFileRaw(file){
+  return new Promise((resolve,reject)=>{
+    const rd=new FileReader();
+    rd.onload=e=>resolve({dataUrl:e.target.result,base64:e.target.result.split(',')[1],mime:file.type});
+    rd.onerror=()=>reject(new Error('Lecture impossible'));
+    rd.readAsDataURL(file);
+  });
+}
+async function onPhotoSelected(input){
   const file=input.files[0];
   if(!file)return;
-  const reader=new FileReader();
-  reader.onload=e=>{
-    photoBase64=e.target.result.split(',')[1];
-    photoMime=file.type;
-    document.getElementById('photo-preview').src=e.target.result;
-    document.getElementById('photo-preview-wrap').style.display='block';
-    const btn=document.getElementById('analyze-btn');
-    btn.disabled=false;
-    btn.style.background='var(--accent)';
-    btn.style.cursor='pointer';
-    document.getElementById('photo-drop-zone').style.borderColor='var(--accent)';
-  };
-  reader.readAsDataURL(file);
+  let img;
+  try{ img=await compressImage(file,1024,0.8); }
+  catch(e){ img=await readFileRaw(file).catch(()=>null); }
+  if(!img){showStatus('Image illisible','err');return;}
+  photoBase64=img.base64; photoMime=img.mime;
+  document.getElementById('photo-preview').src=img.dataUrl;
+  document.getElementById('photo-preview-wrap').style.display='block';
+  const btn=document.getElementById('analyze-btn');
+  btn.disabled=false;
+  btn.style.background='var(--accent)';
+  btn.style.cursor='pointer';
+  document.getElementById('photo-drop-zone').style.borderColor='var(--accent)';
 }
 
 function clearPhoto(){
@@ -4945,12 +5001,14 @@ function startLabelScan(fill){
   inp.value='';
   inp.click();
 }
-function onLabelSelected(input){
+async function onLabelSelected(input){
   const file=input.files&&input.files[0];
   if(!file||!_labelFill)return;
-  const reader=new FileReader();
-  reader.onload=e=>analyzeLabelPhoto(e.target.result.split(',')[1],file.type);
-  reader.readAsDataURL(file);
+  let img;
+  try{ img=await compressImage(file,1280,0.85); }   // un peu plus fin : on lit du texte
+  catch(e){ img=await readFileRaw(file).catch(()=>null); }
+  if(!img){showStatus('Image illisible','err');return;}
+  analyzeLabelPhoto(img.base64,img.mime);
 }
 async function analyzeLabelPhoto(b64,mime){
   const sts=[...document.querySelectorAll('.label-status')];
