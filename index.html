@@ -218,6 +218,7 @@ h1 span{color:var(--accent);font-weight:700}
 .bar-track{height:5px;background:#EBEBE8;border-radius:3px;margin-top:8px}
 .bar-fill{height:5px;border-radius:3px;transition:width .5s}
 .over{color:#C1443B!important}
+body.dark-mode .over{color:#F08A78!important}
 
 /* WEEKLY SUMMARY */
 .week-summary{background:#fff;border:1px solid #E5E5E2;border-radius:14px;padding:16px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,.04)}
@@ -3838,8 +3839,13 @@ function renderThemePicker(activeKey){
 }
 
 // ── VERSION / CHANGELOG ──────────────────────────────────────────
-const APP_VERSION='1.8.1';
+const APP_VERSION='1.8.2';
 const CHANGELOG=[
+  {version:'1.8.2',date:'2026-08-26',changes:[
+    "Repas : fini les 350 g de pommes de terre — l'aliment est choisi pour que la portion reste normale",
+    "Une macro déjà dépassée s'affiche « en trop » au lieu d'un nombre négatif, et ne fait plus disparaître la viande du repas",
+    "Quand la cible est trop haute pour une seule assiette, l'app le dit au lieu de gonfler les portions"
+  ]},
   {version:'1.8.1',date:'2026-08-24',changes:[
     "L'analyse photo ne reste plus bloquée sur « Gemini analyse ton repas » : l'image est réduite avant l'envoi",
     "Un envoi qui cale est détecté au bout de 60 s et relancé, au lieu de tourner indéfiniment"
@@ -4876,9 +4882,18 @@ function mealsLeft(h){
   const l=MEALS.filter(m=>h<m.avant);
   return l.length?l:[MEALS[MEALS.length-1]];
 }
-function pickFood(cats,pref,used,recent){
-  const pool=getFullDB().filter(f=>cats.includes(f.cat)&&f.c>0&&!used.has(f.n));
+function pickFood(cats,pref,used,recent,poids,maxW){
+  let pool=getFullDB().filter(f=>cats.includes(f.cat)&&f.c>0&&!used.has(f.n));
   if(!pool.length)return null;
+  // Portion realiste d'abord. On choisissait l'aliment puis on calculait le
+  // poids : 305 kcal de pomme de terre = 350 g dans l'assiette. On ecarte donc
+  // en amont ceux qui demanderaient une portion absurde, et a defaut on garde
+  // les plus denses (ceux qui exigent le moins de grammes).
+  if(poids){
+    const tenables=pool.filter(f=>{const w=poids(f);return w>0&&w<=(maxW||220);});
+    pool=tenables.length?tenables
+      :pool.slice().sort((a,b)=>poids(a)-poids(b)).slice(0,8);
+  }
   // 1er choix : ce que l'utilisateur mange vraiment, le plus frequent d'abord
   const habituels=recent?pool.filter(f=>recent[f.n]):[];
   if(habituels.length){
@@ -4909,7 +4924,8 @@ function composeMeal(m,target,recent){
   };
   const reste=()=>target.cal-mealTotals(items).cal;
   // 1. proteines : dimensionnees sur la cible proteique
-  const fp=pickFood(m.prot,'p',used,recent);
+  const fp=pickFood(m.prot,'p',used,recent,
+    f=>f.p>0?target.p*0.78/(f.p/100):Infinity,250);
   // 0.78 : le feculent et le legume apportent aussi des proteines. Viser 100 %
   //        ici faisait depasser la cible de ~25 %.
   if(fp&&fp.p>0)push(fp,Math.min(300,target.p*0.78/(fp.p/100)));
@@ -4917,11 +4933,16 @@ function composeMeal(m,target,recent){
   //    des portions absurdes (400 g de carottes).
   if(m.veg){const fv=pickFood(m.veg,null,used,recent);if(fv)push(fv,150);}
   // 3. feculent : dimensionne sur les calories restantes
-  const fc=pickFood(m.gluc,'g',used,recent);
-  if(fc&&reste()>40)push(fc,Math.min(350,reste()/(fc.c/100)));
+  const fc=pickFood(m.gluc,'g',used,recent,f=>reste()/(f.c/100),200);
+  // Plafond a 220 g : quand la cible est intenable en un repas (ouvrir
+  // l'onglet le soir sans rien avoir logue vise 2000 kcal d'un coup), mieux
+  // vaut proposer une assiette normale et rester en dessous que 350 g de muesli.
+  if(fc&&reste()>40)push(fc,Math.min(220,reste()/(fc.c/100)));
   // 4. complement dense (noix, huile...) si l'ecart reste important
-  const ff=pickFood(m.fill||[],null,used,recent);
-  if(ff&&reste()>80)push(ff,Math.min(80,reste()/(ff.c/100)));
+  const ff=pickFood(m.fill||[],null,used,recent,f=>reste()/(f.c/100),80);
+  // Le plafond en grammes doit suivre la densite : 80 g conviennent a des
+  // noix, pas a de l'huile (80 g = 720 kcal, et personne ne boit ca).
+  if(ff&&reste()>80)push(ff,Math.min(ff.c>=700?15:ff.c>=400?40:80,reste()/(ff.c/100)));
   return items;
 }
 function renderMealPlan(){
@@ -4930,15 +4951,27 @@ function renderMealPlan(){
   const log=(data[tk]||[]);
   const eaten=log.reduce((t,f)=>({cal:t.cal+f.cal,p:t.p+f.p,l:t.l+f.l,g:t.g+f.g}),{cal:0,p:0,l:0,g:0});
   const rest={cal:G.cal-eaten.cal,p:G.p-eaten.p,l:G.l-eaten.l,g:G.g-eaten.g};
+  // Une macro deja depassee ne se "derattrape" pas : viser un reste negatif
+  // donnait une cible negative, et l'aliment correspondant disparaissait du
+  // repas (le garde-fou w>0 le rejetait en silence).
+  const dispo={cal:rest.cal,p:Math.max(0,rest.p),l:Math.max(0,rest.l),g:Math.max(0,rest.g)};
   const isDark=document.body.classList.contains('dark-mode');
   const sub=isDark?'#A79E8C':'#5E584E';
 
+  // Un reste negatif veut dire "objectif depasse". Affiche brut ("-16.5g" sous
+  // le libelle "Proteines") ca se lit comme un bug ; on le nomme.
+  const cellule=(v,unite,libelle,couleur)=>{
+    const trop=v<0;
+    return `<div class="wstat">
+      <div class="wval${trop?' over':''}"${trop?'':` style="color:${couleur}"`}>${trop?'+'+unite.replace('%v',r1(-v)):unite.replace('%v',r1(v))}</div>
+      <div class="wlbl">${trop?libelle+' en trop':libelle}</div></div>`;
+  };
   document.getElementById('repas-restant').innerHTML=
     `<div class="week-stats">
-       <div class="wstat"><div class="wval" style="color:#B8623A">${Math.round(rest.cal)}</div><div class="wlbl">kcal restantes</div></div>
-       <div class="wstat"><div class="wval" style="color:var(--accent)">${r1(rest.p)}g</div><div class="wlbl">Protéines</div></div>
-       <div class="wstat"><div class="wval" style="color:#B8860B">${r1(rest.l)}g</div><div class="wlbl">Lipides</div></div>
-       <div class="wstat"><div class="wval" style="color:#6B9B4F">${r1(rest.g)}g</div><div class="wlbl">Glucides</div></div>
+       ${cellule(Math.round(rest.cal),'%v','kcal restantes','#B8623A')}
+       ${cellule(rest.p,'%vg','Protéines','var(--accent)')}
+       ${cellule(rest.l,'%vg','Lipides','#B8860B')}
+       ${cellule(rest.g,'%vg','Glucides','#6B9B4F')}
      </div>`;
 
   const liste=document.getElementById('repas-liste');
@@ -4952,7 +4985,7 @@ function renderMealPlan(){
   const somme=restants.reduce((s,m)=>s+m.part,0);
   window._mealPlan=restants.map(m=>{
     const f=m.part/somme;
-    const target={cal:rest.cal*f,p:rest.p*f,l:rest.l*f,g:rest.g*f};
+    const target={cal:dispo.cal*f,p:dispo.p*f,l:dispo.l*f,g:dispo.g*f};
     return {nom:m.nom,target,items:composeMeal(m,target,recent)};
   });
 
@@ -4972,6 +5005,7 @@ function renderMealPlan(){
         <span>TOTAL PROPOSÉ</span>
         <span>${t.cal} kcal · P ${r1(t.p)}g · L ${r1(t.l)}g · G ${r1(t.g)}g</span>
       </div>
+      ${t.cal<r.target.cal*0.8?`<div style="font-size:12px;color:${sub};margin-top:8px;line-height:1.5">Il reste ${Math.round(r.target.cal-t.cal)} kcal après ce repas : la cible est trop haute pour une assiette réaliste. Ajoute une collation plutôt que d'agrandir les portions.</div>`:''}
       <button onclick="addMealToJournal(${i})" style="width:100%;min-height:44px;margin-top:12px;border-radius:9px;border:none;background:var(--accent);color:var(--accent-text-on);font-size:14px;font-weight:700;cursor:pointer">
         Ajouter au journal</button>
     </div>`;
