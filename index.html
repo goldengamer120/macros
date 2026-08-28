@@ -3839,8 +3839,12 @@ function renderThemePicker(activeKey){
 }
 
 // ── VERSION / CHANGELOG ──────────────────────────────────────────
-const APP_VERSION='1.8.2';
+const APP_VERSION='1.8.3';
 const CHANGELOG=[
+  {version:'1.8.3',date:'2026-08-28',changes:[
+    "« Clé saturée » distingue enfin la limite par minute (l'app attend et réussit) du quota du jour (elle te dit quand il repart)",
+    "L'attente entre deux tentatives monte jusqu'à 60 s : insister toutes les 15 s maintenait la limite saturée"
+  ]},
   {version:'1.8.2',date:'2026-08-26',changes:[
     "Repas : fini les 350 g de pommes de terre — l'aliment est choisi pour que la portion reste normale",
     "Une macro déjà dépassée s'affiche « en trop » au lieu d'un nombre négatif, et ne fait plus disparaître la viande du repas",
@@ -4186,6 +4190,30 @@ const GEMINI_URL='https://generativelanguage.googleapis.com/v1beta/models/gemini
 // 429 alors qu'un simple delai suffirait. On retente donc 3 fois avec un delai
 // croissant, en respectant le retryDelay quand l'API l'indique. Les surcharges
 // serveur (503) suivent le meme chemin. Les autres erreurs remontent aussitot.
+const LS_GEMJOUR='macros_gemini_jour_v1';
+// Combien d'analyses ont abouti aujourd'hui. Sert a dire a l'utilisateur si
+// c'est lui qui a consomme le quota du jour, ou si la cle est partagee.
+function compteGemini(incr){
+  let o={};
+  try{o=JSON.parse(localStorage.getItem(LS_GEMJOUR)||'{}')}catch(e){}
+  const j=todayKeyLocal();
+  if(o.jour!==j)o={jour:j,n:0};
+  if(incr){o.n++;try{localStorage.setItem(LS_GEMJOUR,JSON.stringify(o))}catch(e){}}
+  return o.n;
+}
+// Le quota par jour et celui par minute renvoient tous deux un 429, mais ils
+// n'appellent pas la meme reaction : le premier ne repart qu'a minuit heure
+// Pacifique, reessayer en boucle ne fait que marteler l'API pendant des heures.
+function quotaJournalier(d){
+  const det=(d&&d.error&&d.error.details)||[];
+  return det.some(x=>(x.violations||[]).some(v=>
+    /per_?day/i.test((v.quotaId||'')+' '+(v.quotaMetric||''))));
+}
+// Heures restantes avant minuit a Los Angeles (ou le quota journalier repart).
+function heuresAvantQuota(){
+  const la=new Date(new Date().toLocaleString('en-US',{timeZone:'America/Los_Angeles'}));
+  return Math.max(1,Math.ceil(24-la.getHours()-la.getMinutes()/60));
+}
 let _geminiAnnule=false;
 function annulerGemini(){_geminiAnnule=true;}
 // Relance tant que Gemini repond « trop de demandes ». Pas de nombre d'essais
@@ -4201,7 +4229,9 @@ async function attendre(ms){
 }
 async function geminiFetch(body,onWait){
   _geminiAnnule=false;
-  const paliers=[2000,5000,10000,15000];
+  // Jusqu'a 60 s : la limite par minute est une fenetre glissante, insister
+  // toutes les 15 s la maintient saturee au lieu de la laisser se vider.
+  const paliers=[2000,5000,15000,30000,60000];
   for(let essai=0;;essai++){
     if(_geminiAnnule)throw new Error('Analyse annulée');
     // fetch n'abandonne jamais tout seul : sans ça un envoi qui cale laisse
@@ -4224,11 +4254,12 @@ async function geminiFetch(body,onWait){
       continue;
     }
     clearTimeout(minuteur);
-    if(res.ok)return d;
+    if(res.ok){compteGemini(true);return d;}
     const msg=(d.error&&d.error.message)||'';
     const code=(d.error&&d.error.code)||res.status;
     const surcharge=code===429||code===503||/quota|exhaust|overload|unavailable|rate/i.test(msg);
     if(!surcharge)throw new Error(msg||('Erreur '+code));
+    if(quotaJournalier(d))throw new Error('QUOTA_JOUR');
     let attente=paliers[Math.min(essai,paliers.length-1)];
     const info=((d.error&&d.error.details)||[]).find(x=>x['@type']&&/RetryInfo/i.test(x['@type']));
     if(info&&info.retryDelay){const s=parseFloat(info.retryDelay);if(s>0)attente=Math.max(attente,s*1000);}
@@ -4245,8 +4276,12 @@ function friendlyError(e){
   if(t.includes('annul'))return "Analyse annulée.";
   if(t.includes('failed to fetch')||t.includes('networkerror')||t.includes('load failed'))
     return "Connexion impossible. Vérifie ta connexion internet, puis réessaie.";
+  if(raw==='QUOTA_JOUR')
+    return "Quota du jour épuisé ("+compteGemini()+" analyse(s) réussie(s) aujourd'hui sur cet appareil). "
+      +"Il ne repart qu'à minuit heure Pacifique, dans ~"+heuresAvantQuota()+" h — réessayer maintenant ne servirait à rien. "
+      +"D'ici là : scanner de code-barres, ou saisie dans l'onglet Manuel.";
   if(t.includes('429')||t.includes('quota')||t.includes('exhaust')||t.includes('rate limit'))
-    return "Trop de demandes : plusieurs tentatives ont échoué. Attends une minute et réessaie, ou saisis les macros dans l'onglet Manuel.";
+    return "Trop de demandes en peu de temps. L'app réessaie toute seule ; si ça dure, attends une minute ou saisis les macros dans l'onglet Manuel.";
   if(t.includes('403')||t.includes('permission')||t.includes('api key')||t.includes('unauthorized'))
     return "Accès à l'analyse refusé. Reconnecte-toi avec le compte autorisé, ou passe par l'onglet Manuel.";
   if(t.includes('500')||t.includes('503')||t.includes('unavailable')||t.includes('overloaded'))
