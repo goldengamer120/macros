@@ -6,7 +6,7 @@ Suivi nutritionnel dans **un seul fichier HTML**. Pas de build, pas de npm, pas 
 - Base de 1000 aliments (26 catégories) + tes propres aliments et recettes
 - 5 modes d'ajout : recherche, photo, **scanner de code-barres**, voix, manuel
 - Statistiques semaine / mois / année, objectifs historisés par date
-- Séance d'étirements guidée à la voix, mode sombre, 5 couleurs d'accent
+- Mode sombre, 5 couleurs d'accent
 - Sync multi-appareils via Firebase (optionnelle)
 
 Pensé pour être ajouté à l'écran d'accueil d'un iPhone.

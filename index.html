@@ -685,7 +685,6 @@ body.dark-mode .dark-mode-row span{color:#F2EFE6}
   <button class="main-tab" onclick="showPage('repas')" id="ptab-repas"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7a3 3 0 0 0 3 3 3 3 0 0 0 3-3V2"/><path d="M6 12v10"/><path d="M18 2c-1.7 1.4-3 3.9-3 6.5 0 1.9 1.1 3.5 3 3.5Z"/><path d="M18 12v10"/></svg> Repas</button>
   <button class="main-tab" onclick="showPage('stats')" id="ptab-stats"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg> Statistiques</button>
   <button class="main-tab" onclick="showPage('objectifs')" id="ptab-objectifs"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg> Objectifs</button>
-  <button class="main-tab" onclick="showPage('etirements')" id="ptab-etirements"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> Étirements</button>
   <button class="main-tab" onclick="showPage('aliments')" id="ptab-aliments"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg> Aliments</button>
 </div>
 
@@ -1098,98 +1097,6 @@ body.dark-mode .dark-mode-row span{color:#F2EFE6}
   <button onclick="renderMealPlan(true)" id="repas-refresh"
     style="width:100%;min-height:44px;margin-bottom:20px;border-radius:10px;border:1.5px solid #D6D6D1;background:transparent;color:#5E584E;font-size:14px;font-weight:600;cursor:pointer">
     Proposer d'autres repas</button>
-</div>
-
-<!-- ══════════════════════════════════════════════ PAGE ÉTIREMENTS -->
-<div id="page-etirements" style="display:none">
-
-  <!-- Intro / contrôles -->
-  <div class="settings-box" id="stretch-intro">
-    <h3>Séance d'étirements Full Body — 15 min</h3>
-    <p style="font-size:13px;color:#5E584E;margin-bottom:16px;line-height:1.6">
-      12 exercices guidés pour étirer tout le corps. La voix te guidera à chaque mouvement et t'annoncera les changements de côté — tu peux poser l'écran et écouter.
-    </p>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px">
-      <div class="stat-tile"><div class="stat-num">12</div><div class="stat-lbl">exercices</div></div>
-      <div class="stat-tile"><div class="stat-num">16</div><div class="stat-lbl">minutes</div></div>
-      <div class="stat-tile"><div class="stat-num">1 min</div><div class="stat-lbl">par exercice</div></div>
-    </div>
-    <!-- liste des exercices -->
-    <div style="margin-bottom:20px">
-      <div class="section-label">Programme</div>
-      <div id="stretch-program-list"></div>
-    </div>
-    <button onclick="startStretch()" style="width:100%;padding:16px;border-radius:12px;border:none;background:var(--accent);color:var(--accent-text-on);font-size:16px;font-weight:700;cursor:pointer;transition:.2s;display:flex;align-items:center;justify-content:center;gap:10px">
-      <svg viewBox="0 0 24 24" fill="currentColor" style="width:16px;height:16px"><polygon points="5 3 19 12 5 21 5 3"/></svg> Lancer la séance
-    </button>
-  </div>
-
-  <!-- Séance en cours -->
-  <div id="stretch-session" style="display:none">
-    <!-- Barre de progression globale -->
-    <div style="margin-bottom:16px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <span style="font-size:12px;font-weight:600;color:#5E584E" id="stretch-progress-label">Exercice 1 / 12</span>
-        <span style="font-size:12px;color:#5E584E" id="stretch-time-total">15:00</span>
-      </div>
-      <div style="height:6px;background:#EBEBE8;border-radius:3px;overflow:hidden">
-        <div id="stretch-progress-bar" style="height:6px;background:var(--accent);border-radius:3px;width:0%;transition:width .5s"></div>
-      </div>
-    </div>
-
-    <!-- Carte exercice courant -->
-    <div class="settings-box" style="text-align:center;padding:28px 20px">
-      <div style="font-size:48px;margin-bottom:12px" id="stretch-emoji">🧘</div>
-      <div style="font-size:22px;font-weight:700;color:#221D14;margin-bottom:6px" id="stretch-name">—</div>
-      <div style="font-size:13px;color:#5E584E;margin-bottom:24px;line-height:1.6;max-width:340px;margin-left:auto;margin-right:auto" id="stretch-desc">—</div>
-
-      <!-- Cercle timer -->
-      <div style="position:relative;width:150px;height:150px;margin:0 auto 24px">
-        <svg viewBox="0 0 150 150" width="150" height="150" style="transform:rotate(-90deg)">
-          <circle cx="75" cy="75" r="65" fill="none" stroke="#EBEBE8" stroke-width="10"/>
-          <circle cx="75" cy="75" r="65" fill="none" stroke="var(--accent)" stroke-width="10"
-            stroke-linecap="round"
-            stroke-dasharray="408.4"
-            stroke-dashoffset="0"
-            id="stretch-timer-arc"
-            style="transition:stroke-dashoffset .5s linear"/>
-        </svg>
-        <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
-          <div id="stretch-countdown" style="font-size:42px;font-weight:700;color:var(--accent);line-height:1">45</div>
-          <div style="font-size:11px;color:#5E584E">secondes</div>
-        </div>
-      </div>
-
-      <!-- Contrôles -->
-      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
-        <button onclick="pauseStretch()" id="stretch-pause-btn" style="padding:12px 24px;border-radius:10px;border:1.5px solid #D6D6D1;background:#fff;font-size:14px;font-weight:600;cursor:pointer;min-width:120px;color:#2E2818">
-          ⏸ Pause
-        </button>
-        <button onclick="skipStretch()" style="padding:12px 24px;border-radius:10px;border:none;background:var(--accent-soft-bg);color:var(--accent);font-size:14px;font-weight:600;cursor:pointer;min-width:120px">
-          ⏭ Suivant
-        </button>
-        <button onclick="stopStretch()" style="padding:12px 24px;border-radius:10px;border:1.5px solid #F5E3DC;background:#fff;color:#C1443B;font-size:14px;font-weight:600;cursor:pointer;min-width:120px">
-          ⏹ Arrêter
-        </button>
-      </div>
-    </div>
-
-    <!-- Prochain exercice -->
-    <div style="text-align:center;padding:10px;font-size:12px;color:#6A6459" id="stretch-next-label"></div>
-  </div>
-
-  <!-- Fin de séance -->
-  <div id="stretch-done" style="display:none">
-    <div class="settings-box" style="text-align:center;padding:32px 20px">
-      <div style="font-size:56px;margin-bottom:12px">🎉</div>
-      <div style="font-size:22px;font-weight:700;color:#4C6B3A;margin-bottom:8px">Séance terminée !</div>
-      <div style="font-size:14px;color:#5E584E;margin-bottom:24px">Bravo ! Tu as complété 15 minutes d'étirements full body.</div>
-      <button onclick="resetStretch()" style="padding:14px 32px;border-radius:12px;border:none;background:var(--accent);color:var(--accent-text-on);font-size:15px;font-weight:700;cursor:pointer">
-        Recommencer
-      </button>
-    </div>
-  </div>
-
 </div>
 
 <!-- MODAL FOOD EDITOR -->
@@ -2449,7 +2356,7 @@ function pushEntry(name,w,food){
 
 // ── PAGES ────────────────────────────────────────────────────────
 function showPage(page){
-  ['journal','repas','stats','aliments','objectifs','etirements'].forEach(p=>{
+  ['journal','repas','stats','aliments','objectifs'].forEach(p=>{
     document.getElementById('page-'+p).style.display=p===page?'block':'none';
     document.getElementById('ptab-'+p).classList.toggle('active',p===page);
   });
@@ -2457,7 +2364,6 @@ function showPage(page){
   if(page==='stats'){renderWeekPage();renderMonthPage();renderYearPage();}
   if(page==='aliments')renderDBTable();
   if(page==='objectifs')loadGoalsForm();
-  if(page==='etirements')initStretchPage();
 }
 
 // ── MODES ────────────────────────────────────────────────────────
@@ -3839,8 +3745,11 @@ function renderThemePicker(activeKey){
 }
 
 // ── VERSION / CHANGELOG ──────────────────────────────────────────
-const APP_VERSION='1.8.3';
+const APP_VERSION='1.9.0';
 const CHANGELOG=[
+  {version:'1.9.0',date:'2026-08-28',changes:[
+    "L'onglet Étirements est retiré : l'app se concentre sur le suivi nutritionnel"
+  ]},
   {version:'1.8.3',date:'2026-08-28',changes:[
     "« Clé saturée » distingue enfin la limite par minute (l'app attend et réussit) du quota du jour (elle te dit quand il repart)",
     "L'attente entre deux tentatives monte jusqu'à 60 s : insister toutes les 15 s maintenait la limite saturée"
@@ -4618,265 +4527,6 @@ window._mergeRemoteData = function(remote) {
   }
   if(typeof repairPortionEntries==='function')repairPortionEntries();
 };
-
-// ── ÉTIREMENTS ───────────────────────────────────────────────────
-const STRETCH_EXERCISES=[
-  {name:"Cou — rotations",emoji:"🔄",duration:60,desc:"Fais des rotations lentes de la tête de gauche à droite. Garde les épaules relâchées.",
-   voice:"Exercice 1. Rotations du cou. Fais des rotations lentes de la tête vers la gauche, puis vers la droite. Garde les épaules bien relâchées.",
-   sideChange:{at:30,msg:"Changez de direction. Roulez maintenant vers l'autre côté."}},
-
-  {name:"Épaules — étirement croisé",emoji:"🤲",duration:60,desc:"Amène ton bras gauche devant toi et tire-le doucement avec le bras droit. Change de côté à 30 secondes.",
-   voice:"Exercice 2. Étirement des épaules. Amène ton bras gauche devant toi et tire-le doucement avec le bras droit.",
-   sideChange:{at:30,msg:"Changez de côté. Passez maintenant au bras droit."}},
-
-  {name:"Triceps — bras derrière la tête",emoji:"💪",duration:60,desc:"Lève le bras droit, plie-le derrière la tête et pousse doucement avec la main gauche. Change à 30 secondes.",
-   voice:"Exercice 3. Étirement des triceps. Lève le bras droit, plie-le derrière la tête, et pousse doucement avec la main gauche.",
-   sideChange:{at:30,msg:"Changez de bras. Passez maintenant au bras gauche."}},
-
-  {name:"Poitrine — ouverture",emoji:"🫀",duration:60,desc:"Entrelace tes doigts dans le dos, ouvre la poitrine et lève légèrement les bras vers l'arrière.",
-   voice:"Exercice 4. Ouverture de la poitrine. Entrelace tes doigts dans le dos et ouvre bien la poitrine vers l'avant. Respire profondément."},
-
-  {name:"Dos — étirement chat-vache",emoji:"🐱",duration:60,desc:"À quatre pattes, creuse le dos en inspirant, arrondis-le en expirant. Synchronise avec ta respiration.",
-   voice:"Exercice 5. Chat vache. À quatre pattes, creuse le dos en inspirant, arrondis-le en expirant. Suis bien ta respiration."},
-
-  {name:"Côtés — inclinaison latérale",emoji:"↔️",duration:60,desc:"Debout, lève le bras gauche et penche-toi vers la droite. Tiens 30 secondes et change de côté.",
-   voice:"Exercice 6. Inclinaison latérale. Lève le bras gauche et penche-toi doucement vers la droite.",
-   sideChange:{at:30,msg:"Changez de côté. Levez maintenant le bras droit et penchez-vous vers la gauche."}},
-
-  {name:"Abdos — cobra",emoji:"🐍",duration:60,desc:"Allongé sur le ventre, pose les mains sous les épaules et pousse doucement pour lever le buste.",
-   voice:"Exercice 7. Pose du cobra. Allonge-toi sur le ventre, mains sous les épaules, et lève doucement le buste. Garde les hanches au sol."},
-
-  {name:"Hanches — fente basse",emoji:"🏃",duration:60,desc:"En fente avant, abaisse le genou arrière au sol et pousse les hanches vers l'avant. Change à 30 secondes.",
-   voice:"Exercice 8. Fente basse. En fente avant genou gauche devant, abaisse le genou droit au sol et pousse les hanches vers l'avant.",
-   sideChange:{at:30,msg:"Changez de jambe. Passez maintenant à l'autre côté, genou droit devant."}},
-
-  {name:"Ischios — flexion assise",emoji:"🪑",duration:60,desc:"Assis au sol, jambes tendues devant toi. Penche-toi doucement vers l'avant et essaie d'atteindre tes pieds. Garde le dos droit.",
-   voice:"Exercice 9. Étirement des ischios assis. Assieds-toi au sol, jambes tendues. Penche-toi doucement vers l'avant, mains vers les pieds. Garde le dos bien droit et respire."},
-
-  {name:"Quadriceps — flamant rose",emoji:"🦩",duration:60,desc:"Debout sur un pied, ramène l'autre talon vers les fessiers. Tiens un mur si besoin. Change à 30 secondes.",
-   voice:"Exercice 10. Étirement des quadriceps. Debout sur le pied gauche, ramène le talon droit vers les fessiers. Tiens un mur si besoin.",
-   sideChange:{at:30,msg:"Changez de jambe. Passez maintenant sur le pied droit."}},
-
-  {name:"Mollets — étirement contre mur",emoji:"🦶",duration:60,desc:"Appuie-toi contre un mur, avance le pied gauche, laisse le talon droit au sol. Change à 30 secondes.",
-   voice:"Exercice 11. Étirement des mollets. Appuie-toi contre un mur, jambe gauche devant, jambe droite tendue derrière, talon bien au sol.",
-   sideChange:{at:30,msg:"Changez de jambe. Passez maintenant l'autre jambe derrière."}},
-
-  {name:"Relaxation — respiration profonde",emoji:"😌",duration:120,desc:"Assis ou allongé, ferme les yeux. Inspire 4 secondes, retiens 4 secondes, expire 6 secondes. Répète.",
-   voice:"Dernier exercice. Deux minutes de relaxation et respiration profonde. Installe-toi confortablement, ferme les yeux. Inspire lentement pendant 4 secondes, retiens, puis expire doucement pendant 6 secondes. Laisse ton corps se détendre complètement.",
-   midMsg:{at:60,msg:"À mi-parcours. Continue la respiration profonde. Inspire... retiens... expire. Tu as fait un excellent travail aujourd'hui."}},
-];
-
-let stretchIdx=0;
-let stretchTimeLeft=0;
-let stretchTimer=null;
-let stretchPaused=false;
-let stretchTotalTime=0;
-let stretchMaxTotal=0;
-
-function initStretchPage(){
-  // afficher le programme
-  const list=document.getElementById('stretch-program-list');
-  if(list&&!list.children.length){
-    const isDark=document.body.classList.contains('dark-mode');
-    list.innerHTML=STRETCH_EXERCISES.map((ex,i)=>`
-      <div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid ${isDark?'#2B2F3B':'#EBEBE8'}${i===STRETCH_EXERCISES.length-1?';border-bottom:none':''}">
-        <div style="font-size:22px;width:32px;text-align:center">${ex.emoji}</div>
-        <div style="flex:1">
-          <div style="font-size:13px;font-weight:600;color:${isDark?'#F2EFE6':'#221D14'}">${ex.name}</div>
-          <div style="font-size:11px;color:#5E584E">${ex.duration}s</div>
-        </div>
-        <div style="font-size:11px;color:#746F63">${Math.floor(ex.duration/60)?Math.floor(ex.duration/60)+'min ':''}${ex.duration%60?ex.duration%60+'s':''}</div>
-      </div>`).join('');
-  }
-}
-
-function startStretch(){
-  stretchIdx=0;
-  stretchPaused=false;
-  stretchTotalTime=0;
-  stretchMaxTotal=STRETCH_EXERCISES.reduce((a,e)=>a+e.duration,0);
-  document.getElementById('stretch-intro').style.display='none';
-  document.getElementById('stretch-done').style.display='none';
-  document.getElementById('stretch-session').style.display='block';
-  loadStretchExercise();
-}
-
-function loadStretchExercise(){
-  const ex=STRETCH_EXERCISES[stretchIdx];
-  stretchTimeLeft=ex.duration;
-  const isDark=document.body.classList.contains('dark-mode');
-
-  document.getElementById('stretch-emoji').textContent=ex.emoji;
-  document.getElementById('stretch-name').textContent=ex.name;
-  document.getElementById('stretch-desc').textContent=ex.desc;
-  document.getElementById('stretch-countdown').textContent=stretchTimeLeft;
-  document.getElementById('stretch-countdown').style.color='var(--accent)';
-  document.getElementById('stretch-timer-arc').setAttribute('stroke','var(--accent)');
-
-  // Prochain exercice
-  const next=STRETCH_EXERCISES[stretchIdx+1];
-  document.getElementById('stretch-next-label').textContent=next?`Prochain : ${next.emoji} ${next.name}`:'Dernier exercice !';
-
-  // progression globale
-  updateStretchProgress();
-
-  // Timer arc reset
-  document.getElementById('stretch-timer-arc').style.strokeDashoffset='0';
-
-  // Annonce vocale
-  speak(ex.voice);
-
-  // Démarrer le timer
-  clearInterval(stretchTimer);
-  stretchTimer=setInterval(tickStretch,1000);
-}
-
-function tickStretch(){
-  if(stretchPaused)return;
-  stretchTimeLeft--;
-  stretchTotalTime++;
-  updateStretchTimer();
-  updateStretchProgress();
-
-  const ex=STRETCH_EXERCISES[stretchIdx];
-
-  // Annonce changement de côté
-  if(ex.sideChange&&stretchTimeLeft===ex.sideChange.at){
-    speak(ex.sideChange.msg);
-    // flash visuel
-    document.getElementById('stretch-countdown').style.color='#B8860B';
-    document.getElementById('stretch-timer-arc').setAttribute('stroke','#B8860B');
-    setTimeout(()=>{
-      if(stretchTimeLeft>10){
-        document.getElementById('stretch-countdown').style.color='var(--accent)';
-        document.getElementById('stretch-timer-arc').setAttribute('stroke','var(--accent)');
-      }
-    },2000);
-    return;
-  }
-
-  // Message mi-parcours (relaxation)
-  if(ex.midMsg&&stretchTimeLeft===ex.midMsg.at){
-    speak(ex.midMsg.msg);
-    return;
-  }
-
-  // Alertes countdown
-  if(stretchTimeLeft===10) speak('10 secondes restantes.');
-  if(stretchTimeLeft===3) speak('3.');
-  if(stretchTimeLeft===2) speak('2.');
-  if(stretchTimeLeft===1) speak('1.');
-
-  if(stretchTimeLeft<=0){
-    clearInterval(stretchTimer);
-    stretchIdx++;
-    if(stretchIdx>=STRETCH_EXERCISES.length){
-      finishStretch();
-    } else {
-      speak('Changement !');
-      setTimeout(loadStretchExercise,1200);
-    }
-  }
-}
-
-function updateStretchTimer(){
-  const ex=STRETCH_EXERCISES[stretchIdx];
-  const pct=stretchTimeLeft/ex.duration;
-  const CIRC=408.4;
-  document.getElementById('stretch-timer-arc').style.strokeDashoffset=(1-pct)*CIRC;
-  document.getElementById('stretch-countdown').textContent=stretchTimeLeft;
-
-  // couleur selon urgence
-  const color=stretchTimeLeft<=10?'#C1443B':stretchTimeLeft<=20?'#B8860B':'var(--accent)';
-  document.getElementById('stretch-countdown').style.color=color;
-  document.getElementById('stretch-timer-arc').setAttribute('stroke',color);
-}
-
-function updateStretchProgress(){
-  const total=stretchMaxTotal;
-  const done=stretchTotalTime;
-  const pct=Math.min(100,Math.round(done/total*100));
-  document.getElementById('stretch-progress-bar').style.width=pct+'%';
-  document.getElementById('stretch-progress-label').textContent=`Exercice ${stretchIdx+1} / ${STRETCH_EXERCISES.length}`;
-  // temps total restant
-  const remaining=total-done;
-  const m=Math.floor(remaining/60);
-  const s=remaining%60;
-  document.getElementById('stretch-time-total').textContent=`${m}:${s.toString().padStart(2,'0')}`;
-}
-
-function pauseStretch(){
-  stretchPaused=!stretchPaused;
-  const btn=document.getElementById('stretch-pause-btn');
-  if(stretchPaused){
-    btn.textContent='▶ Reprendre';
-    btn.style.background='var(--accent)';
-    btn.style.color='var(--accent-text-on)';
-    btn.style.border='none';
-    speak('Pause.');
-  } else {
-    btn.textContent='⏸ Pause';
-    btn.style.background='#1E212B';
-    btn.style.color='#F2EFE6';
-    btn.style.border='1.5px solid #D6D6D1';
-    speak('On reprend !');
-  }
-}
-
-function skipStretch(){
-  clearInterval(stretchTimer);
-  stretchTotalTime+=stretchTimeLeft;
-  stretchIdx++;
-  if(stretchIdx>=STRETCH_EXERCISES.length){
-    finishStretch();
-  } else {
-    loadStretchExercise();
-  }
-}
-
-function stopStretch(){
-  if(!confirm('Arrêter la séance ?'))return;
-  clearInterval(stretchTimer);
-  window.speechSynthesis&&window.speechSynthesis.cancel();
-  resetStretch();
-}
-
-function finishStretch(){
-  clearInterval(stretchTimer);
-  window.speechSynthesis&&window.speechSynthesis.cancel();
-  document.getElementById('stretch-session').style.display='none';
-  document.getElementById('stretch-done').style.display='block';
-  speak('Félicitations ! Tu as terminé ta séance d\'étirements. Excellent travail !');
-}
-
-function resetStretch(){
-  clearInterval(stretchTimer);
-  stretchIdx=0;stretchTimeLeft=0;stretchTotalTime=0;stretchPaused=false;
-  document.getElementById('stretch-session').style.display='none';
-  document.getElementById('stretch-done').style.display='none';
-  document.getElementById('stretch-intro').style.display='block';
-}
-
-// Text-to-Speech
-function speak(text){
-  if(!window.speechSynthesis)return;
-  window.speechSynthesis.cancel();
-  const utt=new SpeechSynthesisUtterance(text);
-  utt.lang='fr-FR';
-  utt.rate=0.95;
-  utt.pitch=1;
-  utt.volume=1;
-  // choisir une voix française si dispo
-  const voices=window.speechSynthesis.getVoices();
-  const frVoice=voices.find(v=>v.lang.startsWith('fr'));
-  if(frVoice)utt.voice=frVoice;
-  window.speechSynthesis.speak(utt);
-}
-// précharger les voix (nécessaire sur certains navigateurs)
-if(window.speechSynthesis){
-  window.speechSynthesis.getVoices();
-  window.speechSynthesis.onvoiceschanged=()=>window.speechSynthesis.getVoices();
-}
 
 // ── PROPOSITION DE REPAS ─────────────────────────────────────────
 // Repartit ce qu'il reste a manger sur les repas encore a venir, puis compose
