@@ -3745,8 +3745,11 @@ function renderThemePicker(activeKey){
 }
 
 // ── VERSION / CHANGELOG ──────────────────────────────────────────
-const APP_VERSION='1.9.2';
+const APP_VERSION='1.9.3';
 const CHANGELOG=[
+  {version:'1.9.3',date:'2026-08-29',changes:[
+    "Un 8e modèle en dernier recours (Pro) : meilleure analyse, mais quota plus serré, donc essayé en dernier"
+  ]},
   {version:'1.9.2',date:'2026-08-29',changes:[
     "L'analyse essaie 7 modèles l'un après l'autre : chacun a ses 20 requêtes par jour, soit ~140 au lieu de 20",
     "Un modèle retiré par Google est simplement sauté, l'analyse continue sur le suivant"
@@ -4115,7 +4118,11 @@ const GEMINI_MODELES=[
   'gemini-3.5-flash',
   'gemini-3.5-flash-lite',
   'gemini-3.1-flash-lite',
-  'gemini-3-flash-preview'
+  'gemini-3-flash-preview',
+  // En dernier : Pro donne de meilleures analyses mais son quota gratuit est
+  // bien plus serre (deja sature au premier test). Il ne coute donc une
+  // requete que si les sept precedents sont epuises.
+  'gemini-pro-latest'
 ];
 const QUOTA_JOUR=20;
 const geminiUrl=m=>`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`;
