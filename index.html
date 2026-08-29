@@ -3745,8 +3745,13 @@ function renderThemePicker(activeKey){
 }
 
 // ── VERSION / CHANGELOG ──────────────────────────────────────────
-const APP_VERSION='1.9.0';
+const APP_VERSION='1.9.1';
 const CHANGELOG=[
+  {version:'1.9.1',date:'2026-08-29',changes:[
+    "Quota : le gratuit donne 20 analyses par jour et par modèle — quand le premier est épuisé, l'app bascule sur le second au lieu d'abandonner",
+    "La boucle de relance ne peut plus consommer la journée : 3 essais maximum par modèle",
+    "Le nombre d'analyses restantes s'affiche au moment de choisir la photo"
+  ]},
   {version:'1.9.0',date:'2026-08-28',changes:[
     "L'onglet Étirements est retiré : l'app se concentre sur le suivi nutritionnel"
   ]},
@@ -4092,7 +4097,13 @@ function saveScanToDB(){
 
 // ── PHOTO / GEMINI ───────────────────────────────────────────────
 const GEMINI_KEY='AQ.Ab8RN6JLOH6evuMTTx__yMMto-h-Qd2DtWpPf01qPrptI6ARbw';
-const GEMINI_URL='https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent';
+// Le quota gratuit est de 20 requetes/jour PAR MODELE (verifie le 2026-08-29 :
+// l'API renvoie quotaId GenerateRequestsPerDayPerProjectPerModel-FreeTier,
+// quotaValue "20"). flash-lite a donc son propre compteur : quand flash est
+// epuise on bascule dessus au lieu d'abandonner la journee.
+const GEMINI_MODELES=['gemini-flash-latest','gemini-flash-lite-latest'];
+const QUOTA_JOUR=20;
+const geminiUrl=m=>`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`;
 
 // Appel Gemini avec relance automatique.
 // Le palier gratuit limite le nombre de requetes par minute : on recoit alors un
@@ -4100,15 +4111,23 @@ const GEMINI_URL='https://generativelanguage.googleapis.com/v1beta/models/gemini
 // croissant, en respectant le retryDelay quand l'API l'indique. Les surcharges
 // serveur (503) suivent le meme chemin. Les autres erreurs remontent aussitot.
 const LS_GEMJOUR='macros_gemini_jour_v1';
-// Combien d'analyses ont abouti aujourd'hui. Sert a dire a l'utilisateur si
-// c'est lui qui a consomme le quota du jour, ou si la cle est partagee.
-function compteGemini(incr){
+// Consommation du jour, par modele. Le quota est celui du PROJET : un autre
+// appareil ou une adresse de la liste blanche consomme le meme budget, donc ce
+// compteur local est un minorant. En cas de desaccord, l'API fait foi.
+function budgetGemini(modele,incr){
   let o={};
   try{o=JSON.parse(localStorage.getItem(LS_GEMJOUR)||'{}')}catch(e){}
-  const j=todayKeyLocal();
-  if(o.jour!==j)o={jour:j,n:0};
-  if(incr){o.n++;try{localStorage.setItem(LS_GEMJOUR,JSON.stringify(o))}catch(e){}}
-  return o.n;
+  if(o.jour!==todayKeyLocal())o={jour:todayKeyLocal(),n:{}};
+  o.n=o.n||{};
+  if(incr){
+    o.n[modele]=incr==='epuise'?QUOTA_JOUR:(o.n[modele]||0)+1;
+    try{localStorage.setItem(LS_GEMJOUR,JSON.stringify(o))}catch(e){}
+  }
+  return o.n[modele]||0;
+}
+// Analyses encore possibles aujourd'hui, tous modeles confondus.
+function analysesRestantes(){
+  return GEMINI_MODELES.reduce((s,m)=>s+Math.max(0,QUOTA_JOUR-budgetGemini(m)),0);
 }
 // Le quota par jour et celui par minute renvoient tous deux un 429, mais ils
 // n'appellent pas la meme reaction : le premier ne repart qu'a minuit heure
@@ -4138,44 +4157,54 @@ async function attendre(ms){
 }
 async function geminiFetch(body,onWait){
   _geminiAnnule=false;
-  // Jusqu'a 60 s : la limite par minute est une fenetre glissante, insister
-  // toutes les 15 s la maintient saturee au lieu de la laisser se vider.
-  const paliers=[2000,5000,15000,30000,60000];
-  for(let essai=0;;essai++){
-    if(_geminiAnnule)throw new Error('Analyse annulée');
-    // fetch n'abandonne jamais tout seul : sans ça un envoi qui cale laisse
-    // le spinner tourner indéfiniment, sans erreur ni nouvelle tentative.
-    const ctrl=new AbortController();
-    const minuteur=setTimeout(()=>ctrl.abort(),60000);
-    let res,d;
-    try{
-      res=await fetch(`${GEMINI_URL}?key=${GEMINI_KEY}`,{
-        method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify(body),signal:ctrl.signal
-      });
-      d=await res.json().catch(()=>({}));
-    }catch(err){
-      clearTimeout(minuteur);
+  // 3 essais par modele : chaque requete coute 5 % du quota du jour, donc une
+  // seule analyse ne doit pas pouvoir consommer la journee — c'est exactement
+  // ce que faisait la boucle illimitee.
+  const paliers=[3000,10000,30000], MAX=3;
+  let derniere=null;
+  for(const modele of GEMINI_MODELES){
+    if(budgetGemini(modele)>=QUOTA_JOUR)continue;
+    for(let essai=0;essai<MAX;essai++){
       if(_geminiAnnule)throw new Error('Analyse annulée');
-      // délai dépassé ou réseau coupé : on retente, comme pour une saturation
-      if(onWait)onWait(essai+1,5);
-      await attendre(5000);
-      continue;
+      // fetch n'abandonne jamais tout seul : sans ça un envoi qui cale laisse
+      // le spinner tourner indéfiniment, sans erreur ni nouvelle tentative.
+      const ctrl=new AbortController();
+      const minuteur=setTimeout(()=>ctrl.abort(),60000);
+      let res,d;
+      try{
+        res=await fetch(`${geminiUrl(modele)}?key=${GEMINI_KEY}`,{
+          method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify(body),signal:ctrl.signal
+        });
+        d=await res.json().catch(()=>({}));
+      }catch(err){
+        clearTimeout(minuteur);
+        if(_geminiAnnule)throw new Error('Analyse annulée');
+        derniere=new Error('reseau');
+        if(essai<MAX-1){if(onWait)onWait(essai+1,5);await attendre(5000);}
+        continue;
+      }
+      clearTimeout(minuteur);
+      // Une reponse 200 compte, meme si son contenu se revele inexploitable.
+      if(res.ok){budgetGemini(modele,true);return d;}
+      const msg=(d.error&&d.error.message)||'';
+      const code=(d.error&&d.error.code)||res.status;
+      const surcharge=code===429||code===503||/quota|exhaust|overload|unavailable|rate/i.test(msg);
+      if(!surcharge)throw new Error(msg||('Erreur '+code));
+      derniere=new Error(msg||('Erreur '+code));
+      // Quota du jour epuise pour CE modele : inutile d'insister, on le note et
+      // on passe au suivant. L'API fait foi sur notre compteur local.
+      if(quotaJournalier(d)){budgetGemini(modele,'epuise');break;}
+      if(essai===MAX-1)break;   // on laisse sa chance au modele suivant
+      let attente=paliers[Math.min(essai,paliers.length-1)];
+      const info=((d.error&&d.error.details)||[]).find(x=>x['@type']&&/RetryInfo/i.test(x['@type']));
+      if(info&&info.retryDelay){const s=parseFloat(info.retryDelay);if(s>0)attente=Math.max(attente,s*1000);}
+      if(onWait)onWait(essai+1,Math.ceil(attente/1000));
+      await attendre(attente);
     }
-    clearTimeout(minuteur);
-    if(res.ok){compteGemini(true);return d;}
-    const msg=(d.error&&d.error.message)||'';
-    const code=(d.error&&d.error.code)||res.status;
-    const surcharge=code===429||code===503||/quota|exhaust|overload|unavailable|rate/i.test(msg);
-    if(!surcharge)throw new Error(msg||('Erreur '+code));
-    if(quotaJournalier(d))throw new Error('QUOTA_JOUR');
-    let attente=paliers[Math.min(essai,paliers.length-1)];
-    const info=((d.error&&d.error.details)||[]).find(x=>x['@type']&&/RetryInfo/i.test(x['@type']));
-    if(info&&info.retryDelay){const s=parseFloat(info.retryDelay);if(s>0)attente=Math.max(attente,s*1000);}
-    if(onWait)onWait(essai+1,Math.ceil(attente/1000));
-    // attente fractionnee pour reagir vite a une annulation
-    await attendre(attente);
   }
+  if(analysesRestantes()<=0)throw new Error('QUOTA_JOUR');
+  throw derniere||new Error('Analyse impossible');
 }
 
 // Traduit une erreur technique en message clair + piste de resolution.
@@ -4186,9 +4215,9 @@ function friendlyError(e){
   if(t.includes('failed to fetch')||t.includes('networkerror')||t.includes('load failed'))
     return "Connexion impossible. Vérifie ta connexion internet, puis réessaie.";
   if(raw==='QUOTA_JOUR')
-    return "Quota du jour épuisé ("+compteGemini()+" analyse(s) réussie(s) aujourd'hui sur cet appareil). "
-      +"Il ne repart qu'à minuit heure Pacifique, dans ~"+heuresAvantQuota()+" h — réessayer maintenant ne servirait à rien. "
-      +"D'ici là : scanner de code-barres, ou saisie dans l'onglet Manuel.";
+    return "Quota du jour épuisé sur les deux modèles. Le gratuit donne 20 analyses par jour et par modèle, "
+      +"et une réponse inexploitable en consomme une quand même. Ça repart à minuit heure Pacifique, "
+      +"dans ~"+heuresAvantQuota()+" h. D'ici là : scanner de code-barres, ou saisie dans l'onglet Manuel.";
   if(t.includes('429')||t.includes('quota')||t.includes('exhaust')||t.includes('rate limit'))
     return "Trop de demandes en peu de temps. L'app réessaie toute seule ; si ça dure, attends une minute ou saisis les macros dans l'onglet Manuel.";
   if(t.includes('403')||t.includes('permission')||t.includes('api key')||t.includes('unauthorized'))
@@ -4250,6 +4279,11 @@ async function onPhotoSelected(input){
   btn.style.background='var(--accent)';
   btn.style.cursor='pointer';
   document.getElementById('photo-drop-zone').style.borderColor='var(--accent)';
+  // 20 analyses/jour/modele : autant l'annoncer avant, pas au moment de l'echec.
+  const reste=analysesRestantes();
+  document.getElementById('photo-results').innerHTML=
+    `<div style="font-size:12px;text-align:center;padding:4px" class="${reste<=3?'over':''}"`+
+    `>${reste} analyse(s) restante(s) aujourd'hui</div>`;
 }
 
 function clearPhoto(){
