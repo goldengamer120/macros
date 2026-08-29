@@ -3745,8 +3745,12 @@ function renderThemePicker(activeKey){
 }
 
 // ── VERSION / CHANGELOG ──────────────────────────────────────────
-const APP_VERSION='1.9.1';
+const APP_VERSION='1.9.2';
 const CHANGELOG=[
+  {version:'1.9.2',date:'2026-08-29',changes:[
+    "L'analyse essaie 7 modèles l'un après l'autre : chacun a ses 20 requêtes par jour, soit ~140 au lieu de 20",
+    "Un modèle retiré par Google est simplement sauté, l'analyse continue sur le suivant"
+  ]},
   {version:'1.9.1',date:'2026-08-29',changes:[
     "Quota : le gratuit donne 20 analyses par jour et par modèle — quand le premier est épuisé, l'app bascule sur le second au lieu d'abandonner",
     "La boucle de relance ne peut plus consommer la journée : 3 essais maximum par modèle",
@@ -4098,10 +4102,21 @@ function saveScanToDB(){
 // ── PHOTO / GEMINI ───────────────────────────────────────────────
 const GEMINI_KEY='AQ.Ab8RN6JLOH6evuMTTx__yMMto-h-Qd2DtWpPf01qPrptI6ARbw';
 // Le quota gratuit est de 20 requetes/jour PAR MODELE (verifie le 2026-08-29 :
-// l'API renvoie quotaId GenerateRequestsPerDayPerProjectPerModel-FreeTier,
-// quotaValue "20"). flash-lite a donc son propre compteur : quand flash est
-// epuise on bascule dessus au lieu d'abandonner la journee.
-const GEMINI_MODELES=['gemini-flash-latest','gemini-flash-lite-latest'];
+// quotaId GenerateRequestsPerDayPerProjectPerModel-FreeTier, quotaValue "20").
+// Chaque modele a donc son propre compteur : on les essaie en cascade, ce qui
+// porte la capacite a ~140 analyses/jour au lieu de 20. Les 7 ci-dessous ont
+// ete testes avec une image le 2026-08-29 ; les aliases -latest sont en tete
+// car ils survivent aux depreciations (gemini-2.5-flash renvoie deja un 404).
+// Un modele qui disparait est simplement saute, pas une panne.
+const GEMINI_MODELES=[
+  'gemini-flash-latest',        // alias : suit la derniere version stable
+  'gemini-flash-lite-latest',   // alias : plus leger, compteur distinct
+  'gemini-3.6-flash',
+  'gemini-3.5-flash',
+  'gemini-3.5-flash-lite',
+  'gemini-3.1-flash-lite',
+  'gemini-3-flash-preview'
+];
 const QUOTA_JOUR=20;
 const geminiUrl=m=>`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`;
 
@@ -4132,6 +4147,17 @@ function analysesRestantes(){
 // Le quota par jour et celui par minute renvoient tous deux un 429, mais ils
 // n'appellent pas la meme reaction : le premier ne repart qu'a minuit heure
 // Pacifique, reessayer en boucle ne fait que marteler l'API pendant des heures.
+// Nom reel derriere un alias : l'API le renvoie dans les dimensions du quota.
+// Sert a marquer le bon compteur quand 'gemini-flash-latest' est en fait
+// 'gemini-3.7-flash', pour ne pas reessayer le meme seau deux fois.
+// « gemini-3.5-flash-lite » -> « 3.5 flash-lite » : lisible sans etre cryptique.
+const nomModele=m=>String(m).replace(/^gemini-?/,'').replace(/-latest$/,'').replace(/-/g,' ').trim()||'Gemini';
+function modeleResolu(d){
+  for(const x of ((d&&d.error&&d.error.details)||[]))
+    for(const v of (x.violations||[]))
+      if(v.quotaDimensions&&v.quotaDimensions.model)return v.quotaDimensions.model;
+  return null;
+}
 function quotaJournalier(d){
   const det=(d&&d.error&&d.error.details)||[];
   return det.some(x=>(x.violations||[]).some(v=>
@@ -4157,17 +4183,16 @@ async function attendre(ms){
 }
 async function geminiFetch(body,onWait){
   _geminiAnnule=false;
-  // 3 essais par modele : chaque requete coute 5 % du quota du jour, donc une
-  // seule analyse ne doit pas pouvoir consommer la journee — c'est exactement
-  // ce que faisait la boucle illimitee.
-  const paliers=[3000,10000,30000], MAX=3;
-  let derniere=null;
+  // 2 essais par modele seulement : avec 7 modeles derriere, passer au suivant
+  // recupere plus vite qu'attendre — la limite par minute est comptee par
+  // modele, donc le voisin est libre immediatement.
+  const paliers=[2000,8000], MAX=2;
+  let derniere=null, tentes=0;
   for(const modele of GEMINI_MODELES){
     if(budgetGemini(modele)>=QUOTA_JOUR)continue;
+    tentes++;
     for(let essai=0;essai<MAX;essai++){
       if(_geminiAnnule)throw new Error('Analyse annulée');
-      // fetch n'abandonne jamais tout seul : sans ça un envoi qui cale laisse
-      // le spinner tourner indéfiniment, sans erreur ni nouvelle tentative.
       const ctrl=new AbortController();
       const minuteur=setTimeout(()=>ctrl.abort(),60000);
       let res,d;
@@ -4180,8 +4205,8 @@ async function geminiFetch(body,onWait){
       }catch(err){
         clearTimeout(minuteur);
         if(_geminiAnnule)throw new Error('Analyse annulée');
-        derniere=new Error('reseau');
-        if(essai<MAX-1){if(onWait)onWait(essai+1,5);await attendre(5000);}
+        derniere=new Error('Connexion interrompue');
+        if(essai<MAX-1){if(onWait)onWait(modele,5);await attendre(5000);}
         continue;
       }
       clearTimeout(minuteur);
@@ -4189,21 +4214,31 @@ async function geminiFetch(body,onWait){
       if(res.ok){budgetGemini(modele,true);return d;}
       const msg=(d.error&&d.error.message)||'';
       const code=(d.error&&d.error.code)||res.status;
+      // Modele retire par Google : on le note indisponible pour la journee et
+      // on passe au suivant, au lieu de faire echouer toute l'analyse.
+      if(code===404||/not found|no longer available/i.test(msg)){
+        budgetGemini(modele,'epuise');
+        derniere=new Error(msg||'Modèle indisponible');
+        break;
+      }
       const surcharge=code===429||code===503||/quota|exhaust|overload|unavailable|rate/i.test(msg);
       if(!surcharge)throw new Error(msg||('Erreur '+code));
       derniere=new Error(msg||('Erreur '+code));
-      // Quota du jour epuise pour CE modele : inutile d'insister, on le note et
-      // on passe au suivant. L'API fait foi sur notre compteur local.
-      if(quotaJournalier(d)){budgetGemini(modele,'epuise');break;}
+      if(quotaJournalier(d)){
+        budgetGemini(modele,'epuise');
+        const vrai=modeleResolu(d);
+        if(vrai&&vrai!==modele)budgetGemini(vrai,'epuise');
+        break;
+      }
       if(essai===MAX-1)break;   // on laisse sa chance au modele suivant
       let attente=paliers[Math.min(essai,paliers.length-1)];
       const info=((d.error&&d.error.details)||[]).find(x=>x['@type']&&/RetryInfo/i.test(x['@type']));
-      if(info&&info.retryDelay){const s=parseFloat(info.retryDelay);if(s>0)attente=Math.max(attente,s*1000);}
-      if(onWait)onWait(essai+1,Math.ceil(attente/1000));
+      if(info&&info.retryDelay){const s=parseFloat(info.retryDelay);if(s>0)attente=Math.min(attente,s*1000);}
+      if(onWait)onWait(modele,Math.ceil(attente/1000));
       await attendre(attente);
     }
   }
-  if(analysesRestantes()<=0)throw new Error('QUOTA_JOUR');
+  if(!tentes||analysesRestantes()<=0)throw new Error('QUOTA_JOUR');
   throw derniere||new Error('Analyse impossible');
 }
 
@@ -4325,10 +4360,10 @@ Sois précis et réaliste dans tes estimations.`;
     const d=await geminiFetch(
       {contents:[{parts:[{inline_data:{mime_type:photoMime,data:photoBase64}},{text:prompt}]}],
        generationConfig:{temperature:0.1}},
-      (n,s)=>{document.getElementById('photo-results').innerHTML=
+      (m,s)=>{document.getElementById('photo-results').innerHTML=
         `<div style="text-align:center;padding:20px;color:#5E584E;font-size:13px">`+
         `<div style="width:28px;height:28px;border:3px solid #D6D6D1;border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 10px"></div>`+
-        `Clé saturée — nouvelle tentative n°${n} dans ${s} s…<br><button type=\"button\" onclick=\"annulerGemini()\" style=\"margin-top:10px;min-height:44px;padding:0 18px;border-radius:9px;border:1.5px solid #D6D6D1;background:transparent;color:#5E584E;font-size:13px;font-weight:600;cursor:pointer\">Annuler</button></div>`;});
+        `Modèle saturé — on essaie ${nomModele(m)} dans ${s} s…<br><button type=\"button\" onclick=\"annulerGemini()\" style=\"margin-top:10px;min-height:44px;padding:0 18px;border-radius:9px;border:1.5px solid #D6D6D1;background:transparent;color:#5E584E;font-size:13px;font-weight:600;cursor:pointer\">Annuler</button></div>`;});
     const text=d.candidates?.[0]?.content?.parts?.[0]?.text||'';
     const clean=text.replace(/```json|```/g,'').trim();
     const parsed=JSON.parse(clean);
@@ -4447,9 +4482,9 @@ Réponds UNIQUEMENT en JSON valide, sans markdown, sans texte autour :
   try{
     const d=await geminiFetch(
       {contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:0.1}},
-      (n,s)=>{resultsEl.innerHTML=
+      (m,s)=>{resultsEl.innerHTML=
         `<div style="text-align:center;padding:20px;color:#5E584E;font-size:13px">`+
-        `Clé saturée — nouvelle tentative n°${n} dans ${s} s…<br><button type=\"button\" onclick=\"annulerGemini()\" style=\"margin-top:10px;min-height:44px;padding:0 18px;border-radius:9px;border:1.5px solid #D6D6D1;background:transparent;color:#5E584E;font-size:13px;font-weight:600;cursor:pointer\">Annuler</button></div>`;});
+        `Modèle saturé — on essaie ${nomModele(m)} dans ${s} s…<br><button type=\"button\" onclick=\"annulerGemini()\" style=\"margin-top:10px;min-height:44px;padding:0 18px;border-radius:9px;border:1.5px solid #D6D6D1;background:transparent;color:#5E584E;font-size:13px;font-weight:600;cursor:pointer\">Annuler</button></div>`;});
     const rawText=d.candidates?.[0]?.content?.parts?.[0]?.text||'';
     const clean=rawText.replace(/```json|```/g,'').trim();
     const parsed=JSON.parse(clean);
@@ -4779,7 +4814,7 @@ Regles imperatives :
     const d=await geminiFetch(
       {contents:[{parts:[{inline_data:{mime_type:mime,data:b64}},{text:prompt}]}],
        generationConfig:{temperature:0.1}},
-      (n,s)=>say(`Clé saturée — nouvelle tentative n°${n} dans ${s} s…`,'#B8860B'));
+      (m,s)=>say(`Modèle saturé — on essaie ${nomModele(m)} dans ${s} s…`,'#B8860B'));
     const txt=d.candidates?.[0]?.content?.parts?.[0]?.text||'';
     const v=JSON.parse(txt.replace(/```json|```/g,'').trim());
     if(v.kcal===null||v.kcal===undefined)throw new Error('valeurs illisibles');
